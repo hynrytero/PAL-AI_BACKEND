@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const config = require('./config');
-const routes = require('./routes');
+const routes = require('./userRoutes');
 const { errorHandler, requestLimiter } = require('./middleware');
 
 // Create Express app

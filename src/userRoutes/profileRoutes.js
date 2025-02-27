@@ -36,8 +36,8 @@ router.get('/fetch-profile/:userId', async (req, res) => {
             }
         ];
 
-        console.log("Executing Query:", query);
-        console.log("Parameters:", params);
+        //console.log("Executing Query:", query);
+        //console.log("Parameters:", params);
 
         const results = await database.executeQuery(query, params);
 
