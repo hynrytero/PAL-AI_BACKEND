@@ -14,7 +14,6 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLimiter);
 
-
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -24,6 +23,7 @@ const upload = multer({
 
 // Routes
 app.use('/', routes);
+app.use(errorHandler);
 
 // Start server
 const PORT = config.server.port;
@@ -40,5 +40,5 @@ process.on('SIGTERM', () => {
   });
 });
 
-app.use(errorHandler);
+
 
