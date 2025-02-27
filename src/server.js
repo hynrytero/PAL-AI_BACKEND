@@ -1,6 +1,5 @@
 // src/server.js
 const express = require('express');
-const multer = require('multer');
 const cors = require('cors');
 const config = require('./config');
 const routes = require('./routes');
@@ -14,13 +13,6 @@ app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(requestLimiter);
-
-// Configure multer for file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, 
-});
-
 
 // Routes
 app.use('/', routes);

@@ -4,7 +4,6 @@ const { transporter} = require('./email');
 const { verificationCodes, passwordResetCodes, otpStorage } = require('./verification');
 
 module.exports = {
-    storage,
     bucketScan,
     bucketProfile,
     transporter,

@@ -8,7 +8,7 @@ const {transporter, passwordResetCodes} = require('../services');
 const { generateVerificationCode } = require('../utils');
 
 // Validate Email
-router.post("/forgot-password", async (req, res) => {
+router.post("/verify-email", async (req, res) => {
     try {
         const { email } = req.body;
 
