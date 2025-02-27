@@ -13,8 +13,6 @@ app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 app.use(requestLimiter);
-app.use(errorHandler);
-
 
 
 // Configure multer for file uploads
@@ -42,4 +40,5 @@ process.on('SIGTERM', () => {
   });
 });
 
+app.use(errorHandler);
 
