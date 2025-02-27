@@ -23,7 +23,7 @@ router.post("/pre-signup", async (req, res) => {
         }
 
         // Generate verification code
-        const verificationCode = generateVerificationCode();
+        const verificationCode = generateVerificationCode;
         const codeExpiry = new Date();
         codeExpiry.setMinutes(codeExpiry.getMinutes() + 15); 
 
@@ -161,7 +161,7 @@ router.post("/resend-verification-code", async (req, res) => {
         }
 
         // Generate new verification code
-        const verificationCode = generateVerificationCode();
+        const verificationCode = generateVerificationCode;
         const codeExpiry = new Date();
         codeExpiry.setMinutes(codeExpiry.getMinutes() + 15);
 
