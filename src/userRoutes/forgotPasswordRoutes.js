@@ -1,4 +1,4 @@
-// src/routes/forgotPasswordRoutes.js
+// src/userRoutes/forgotPasswordRoutes.js
 const express = require('express');
 const router = express.Router();
 const database = require('../db/connection');

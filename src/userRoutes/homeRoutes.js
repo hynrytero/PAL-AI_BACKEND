@@ -1,4 +1,4 @@
-// src/routes/homeRoutes.js
+// src/userRoutes/homeRoutes.js
 const express = require('express');
 const router = express.Router();
 const database = require('../db/connection');

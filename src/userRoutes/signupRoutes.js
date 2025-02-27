@@ -1,4 +1,4 @@
-// src/routes/signupRoutes.js
+// src/userRoutes/signupRoutes.js
 const express = require('express');
 const router = express.Router();
 const database = require('../db/connection');

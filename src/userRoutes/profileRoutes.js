@@ -1,4 +1,4 @@
-// src/routes/profileRoutes.js
+// src/userRoutes/profileRoutes.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');

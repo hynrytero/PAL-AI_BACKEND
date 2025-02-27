@@ -1,4 +1,4 @@
-// src/routes/authRoutes.js
+// src/userRoutes/authRoutes.js
 const express = require('express');
 const router = express.Router();
 const database = require('../db/connection');
@@ -71,6 +71,7 @@ router.post("/login", async (req, res) => {
         res.status(500).json({ message: "An error occurred during login" });
     }
 });
+
 // Register Push Token for Notif
 router.post('/pushToken', async (req, res) => {
     const { token, user_id } = req.body;
