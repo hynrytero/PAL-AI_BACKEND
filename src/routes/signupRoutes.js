@@ -3,7 +3,11 @@ const router = express.Router();
 const database = require('../db/connection');
 const bcrypt = require('bcrypt');
 const { TYPES } = require('tedious');
-const {transporter, verificationCodes, generateVerificationCode } = require('../services');
+const {transporter, verificationCodes} = require('../services');
+
+function generateVerificationCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 router.post("/pre-signup", async (req, res) => {
     try {
@@ -23,7 +27,7 @@ router.post("/pre-signup", async (req, res) => {
         }
 
         // Generate verification code
-        const verificationCode = generateVerificationCode;
+        const verificationCode = generateVerificationCode();
         const codeExpiry = new Date();
         codeExpiry.setMinutes(codeExpiry.getMinutes() + 15); 
 
@@ -161,7 +165,7 @@ router.post("/resend-verification-code", async (req, res) => {
         }
 
         // Generate new verification code
-        const verificationCode = generateVerificationCode;
+        const verificationCode = generateVerificationCode();
         const codeExpiry = new Date();
         codeExpiry.setMinutes(codeExpiry.getMinutes() + 15);
 

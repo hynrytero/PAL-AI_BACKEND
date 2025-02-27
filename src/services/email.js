@@ -2,10 +2,6 @@
 const nodemailer = require('nodemailer');
 const config = require('../config');
 
-function generateVerificationCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 const transporter = nodemailer.createTransport({
     service: config.email.service,
     auth: {
@@ -15,6 +11,5 @@ const transporter = nodemailer.createTransport({
 });
 
 module.exports = {
-    generateVerificationCode,
     transporter
 };
