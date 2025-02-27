@@ -9,7 +9,7 @@ const signupRoutes = require('./signupRoutes');
 const forgotPasswordRoutes = require('./forgotPasswordRoutes');
 const profileRoutes = require('./profileRoutes');
 const historyRoutes = require('./historyRoutes');
-//const credentialsRoutes = require('./credentialsRoutes');
+const credentialsRoutes = require('./credentialsRoutes');
 
 // Define route mountpoints
 router.use('/auth', authRoutes);
@@ -18,6 +18,6 @@ router.use('/signup', signupRoutes);
 router.use('/forgotpassword', forgotPasswordRoutes);
 router.use('/profile', profileRoutes);
 router.use('/history', historyRoutes);
-//router.use('/credentials', credentialsRoutes);
+router.use('/credentials', credentialsRoutes);
 
 module.exports = router;
