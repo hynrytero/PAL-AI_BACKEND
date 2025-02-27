@@ -1,5 +1,5 @@
 // services/index.js
-const { storage, bucketScan, bucketProfile } = require('./storage');
+const { bucketScan, bucketProfile } = require('./storage');
 const { transporter} = require('./email');
 const { verificationCodes, passwordResetCodes, otpStorage } = require('./verification');
 
