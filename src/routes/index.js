@@ -6,11 +6,13 @@ const router = express.Router();
 const authRoutes = require('./authRoutes');
 const homeRoutes = require('./homeRoutes');
 const signupRoutes = require('./signupRoutes');
+const forgotPasswordRoutes = require('./forgotPasswordRoutes');
 
 // Define route mountpoints
 router.use('/auth', authRoutes);
 router.use('/home', homeRoutes);
 router.use('/signup', signupRoutes);
+router.use('/forgotpassword', forgotPasswordRoutes);
 
 
 module.exports = router;

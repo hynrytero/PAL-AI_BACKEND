@@ -6,7 +6,6 @@ const bcrypt = require('bcrypt');
 const { TYPES } = require('tedious');
 const {transporter, verificationCodes} = require('../services');
 const { generateVerificationCode } = require('../utils');
-console.log('Type of generateVerificationCode:', typeof generateVerificationCode); // test kwaa kung mana
 
 // Pre-signup process
 router.post("/pre-signup", async (req, res) => {
