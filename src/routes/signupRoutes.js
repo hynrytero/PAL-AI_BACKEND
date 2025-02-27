@@ -1,14 +1,13 @@
+// src/routes/signupRoutes.js
 const express = require('express');
 const router = express.Router();
 const database = require('../db/connection');
 const bcrypt = require('bcrypt');
 const { TYPES } = require('tedious');
 const {transporter, verificationCodes} = require('../services');
+const { generateVerificationCode } = require('../utils');
 
-function generateVerificationCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
+// Pre-signup process
 router.post("/pre-signup", async (req, res) => {
     try {
         const { username, email, password, firstname, lastname, birthdate, gender, mobilenumber } = req.body;
@@ -75,6 +74,7 @@ router.post("/pre-signup", async (req, res) => {
         });
     }
 });
+
 // Complete Signup with Verification Code
 router.post("/complete-signup", async (req, res) => {
     try {
@@ -150,6 +150,7 @@ router.post("/complete-signup", async (req, res) => {
         });
     }
 });
+
 // Resend Verification Code Endpoint
 router.post("/resend-verification-code", async (req, res) => {
     try {

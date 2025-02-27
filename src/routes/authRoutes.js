@@ -6,7 +6,7 @@ const bcrypt = require('bcrypt');
 const { TYPES } = require('tedious');
 const { Expo } = require('expo-server-sdk');
 
-
+// Login Enpoint
 router.post("/login", async (req, res) => {
     try {
         const { identifier, password } = req.body;
@@ -71,8 +71,7 @@ router.post("/login", async (req, res) => {
         res.status(500).json({ message: "An error occurred during login" });
     }
 });
-
-
+// Register Push Token for Notif
 router.post('/pushToken', async (req, res) => {
     const { token, user_id } = req.body;
     
