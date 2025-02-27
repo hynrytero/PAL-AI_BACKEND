@@ -1,40 +1,45 @@
-// src/index.js
 const express = require('express');
 const multer = require('multer');
-const bodyParser = require('body-parser');
+const cors = require('cors');
 const config = require('./config');
 const routes = require('./routes');
-const { requestLimiter } = require('./middleware/rateLimit');
+const { errorHandler, requestLimiter } = require('./middleware');
 
 // Create Express app
 const app = express();
+app.set('trust proxy', 1);
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(requestLimiter);
+app.use(errorHandler);
+
+
 
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, 
-  },
+  limits: { fileSize: 10 * 1024 * 1024 }, 
 });
-
-// Middleware
-app.use(bodyParser.json());
-app.use(requestLimiter);
 
 
 // Routes
 app.use('/', routes);
 
-
 // Start server
 const PORT = config.server.port;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Handle graceful shutdown
+// Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM signal received: closing HTTP server');
-  // Close connections and clean up
-  process.exit(0);
+  server.close(() => {
+    console.log('HTTP server closed');
+    process.exit(0);
+  });
 });
+
+
