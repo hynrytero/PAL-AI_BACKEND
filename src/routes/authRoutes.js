@@ -4,6 +4,8 @@ const router = express.Router();
 const database = require('../db/connection');
 const bcrypt = require('bcrypt');
 const { TYPES } = require('tedious');
+const { Expo } = require('expo-server-sdk');
+
 
 router.post("/login", async (req, res) => {
     try {
@@ -67,6 +69,67 @@ router.post("/login", async (req, res) => {
     } catch (err) {
         console.error('Login error:', err);
         res.status(500).json({ message: "An error occurred during login" });
+    }
+});
+
+
+router.post('/pushToken', async (req, res) => {
+    const { token, user_id } = req.body;
+    
+    if (!user_id) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+    
+    if (!token || !Expo.isExpoPushToken(token)) {
+      return res.status(400).json({ error: 'Invalid Expo push token' });
+    }
+  
+    try {
+      // First check if user exists and what their current token is
+      const checkQuery = `
+        SELECT push_token
+        FROM user_credentials 
+        WHERE user_id = @param0
+      `;
+      
+      const checkParams = [
+        { type: TYPES.Int, value: user_id }
+      ];
+      
+      const results = await database.executeQuery(checkQuery, checkParams);
+      
+      if (results.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Get current token (might be null)
+      const currentToken = results[0].push_token ? results[0].push_token.value : null;
+      
+      // If token is the same, no need to update
+      if (currentToken === token) {
+        return res.status(200).json({ message: 'Token already registered for this user' });
+      }
+      
+      // Update token regardless of whether it was null or had a different value
+      const updateQuery = `
+        UPDATE user_credentials 
+        SET push_token = @param0
+        WHERE user_id = @param1
+      `;
+      
+      const updateParams = [
+        { type: TYPES.VarChar, value: token },
+        { type: TYPES.Int, value: user_id }
+      ];
+      
+      await database.executeQuery(updateQuery, updateParams);
+      
+      res.status(200).json({ 
+        message: currentToken ? 'Push token updated successfully' : 'Push token registered successfully' 
+      });
+    } catch (error) {
+      console.error('Error registering/updating token:', error);
+      res.status(500).json({ error: 'Failed to register/update token' });
     }
 });
 
