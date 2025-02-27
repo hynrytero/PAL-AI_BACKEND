@@ -3,7 +3,7 @@ const router = express.Router();
 const database = require('../db/connection');
 const bcrypt = require('bcrypt');
 const { TYPES } = require('tedious');
-const {transporter, verificationCodes, generateVerificationCode } = require('./services');
+const {transporter, verificationCodes, generateVerificationCode } = require('../services');
 
 router.post("/pre-signup", async (req, res) => {
     try {
