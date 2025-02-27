@@ -1,6 +1,6 @@
 // services/index.js
 const { storage, bucketScan, bucketProfile } = require('./storage');
-const { transporter, generateVerificationCode} = require('./email');
+const { transporter, generateVerificationCode } = require('./email');
 const { verificationCodes, passwordResetCodes, otpStorage } = require('./verification');
 
 module.exports = {
@@ -8,10 +8,10 @@ module.exports = {
     bucketScan,
     bucketProfile,
     transporter,
+    generateVerificationCode,
     verificationCodes,
     passwordResetCodes,
-    otpStorage,
-    generateVerificationCode
+    otpStorage
 };
 
 
