@@ -7,40 +7,67 @@ class DatabasePool {
   constructor() {
     this.connectionPool = [];
     this.MAX_POOL_SIZE = config.database.maxPoolSize;
+    this.isLocalDevelopment = config.development.config === 'development';
   }
 
   async createNewConnection() {
     try {
-      const connector = new Connector();
-      const clientOpts = await connector.getTediousOptions({
-        instanceConnectionName: config.database.server,
-        ipType: 'PUBLIC',
-      });
-
-      const connection = new Connection({
-        server: '0.0.0.0',
-        authentication: {
-          type: 'default',
-          options: {
-            userName: config.database.user,
-            password: config.database.password,
+      let connectionConfig;
+      
+      if (this.isLocalDevelopment) {
+        connectionConfig = {
+          server: config.database.localServer || 'localhost',
+          authentication: {
+            type: 'default',
+            options: {
+              userName: config.database.user,
+              password: config.database.password,
+            },
           },
-        },
-        options: {
-          ...clientOpts,
-          port: 9999,
-          database: config.database.name,
-          trustServerCertificate: true,
-          encrypt: false,
-          connectTimeout: 30000,
-          requestTimeout: 30000,
-          retry: {
-            maxRetries: 3,
-            minTimeout: 300,
-            maxTimeout: 3000
-          }
-        },
-      });
+          options: {
+            port: config.database.port || 1433,
+            database: config.database.name,
+            trustServerCertificate: true,
+            encrypt: false,
+            connectTimeout: 30000,
+            requestTimeout: 30000,
+          },
+        };
+      } else {
+        // Cloud SQL connection for production
+        const connector = new Connector();
+        const clientOpts = await connector.getTediousOptions({
+          instanceConnectionName: config.database.server,
+          ipType: 'PUBLIC',
+        });
+
+        connectionConfig = {
+          server: '0.0.0.0',
+          authentication: {
+            type: 'default',
+            options: {
+              userName: config.database.user,
+              password: config.database.password,
+            },
+          },
+          options: {
+            ...clientOpts,
+            port: 9999,
+            database: config.database.name,
+            trustServerCertificate: true,
+            encrypt: false,
+            connectTimeout: 30000,
+            requestTimeout: 30000,
+            retry: {
+              maxRetries: 3,
+              minTimeout: 300,
+              maxTimeout: 3000
+            }
+          },
+        };
+      }
+
+      const connection = new Connection(connectionConfig);
 
       return new Promise((resolve, reject) => {
         connection.connect(err => {
@@ -96,7 +123,7 @@ class DatabasePool {
     let connection;
     try {
       connection = await this.getConnection();
-      
+
       return new Promise((resolve, reject) => {
         const request = new Request(query, (err) => {
           if (err) {

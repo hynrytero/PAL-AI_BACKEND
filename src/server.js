@@ -5,6 +5,10 @@ const config = require('./config');
 const userRoutes = require('./userRoutes');
 const { errorHandler, requestLimiter } = require('./middleware');
 
+// Check environment
+const isDevelopment = config.development.config === 'development';
+console.log(`Running in ${isDevelopment ? 'development' : 'production'} mode`);
+
 // Create Express app
 const app = express();
 app.set('trust proxy', 1);
@@ -14,14 +18,32 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLimiter);
 
+if (isDevelopment) {
+  app.use((req, res, next) => {
+    req.isDevelopment = true;
+    next();
+  });
+}
+
 // Routes
 app.use('/', userRoutes);
+
 app.use(errorHandler);
 
 // Start server
 const PORT = config.server.port;
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  if (isDevelopment) {
+    console.log('Using local database connection settings');
+  } else {
+    console.log('Using Google Cloud SQL connector');
+  }
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 // Graceful shutdown
@@ -32,6 +54,3 @@ process.on('SIGTERM', () => {
     process.exit(0);
   });
 });
-
-
-

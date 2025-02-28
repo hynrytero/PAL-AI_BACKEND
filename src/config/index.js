@@ -10,7 +10,10 @@ module.exports = {
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     name: process.env.DB_NAME,
-    maxPoolSize: 10
+    maxPoolSize: 10,
+
+    localServer: 'localhost', //local SQL Server address
+    port: 1433,  // default SQL Server port
   },
   storage: {
     projectId: process.env.GOOGLE_CLOUD_PROJECT,
@@ -21,5 +24,8 @@ module.exports = {
     service: process.env.EMAIL_SERVICE,
     user: process.env.EMAIL_USER,
     password: process.env.EMAIL_PASSWORD
+  },
+  development: {
+     config: process.env.NODE_ENV
   }
 };
