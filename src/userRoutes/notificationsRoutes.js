@@ -174,6 +174,60 @@ router.post('/store-notification', async (req, res) => {
     }
   });
 
+// Store notification for all users
+router.post('/store-notification-all', async (req, res) => {
+    const { title, body, data, icon, icon_bg_color, type } = req.body;
+    
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    
+    try {
+      // First, get all user IDs from the database
+      const getUsersQuery = `SELECT user_id FROM users`;
+      const users = await database.executeQuery(getUsersQuery, []);
+      
+      if (!users || users.length === 0) {
+        return res.status(404).json({ error: 'No users found' });
+      }
+      
+      // Prepare the notification insert query
+      const insertQuery = `
+        INSERT INTO user_notifications (user_id, title, body, icon, icon_bg_color, type, data)
+        VALUES (@param0, @param1, @param2, @param3, @param4, @param5, @param6)
+      `;
+      
+      // Loop through all users and insert the notification for each
+      for (const user of users) {
+        const userId = user.user_id ? user.user_id.value : null;
+        
+        if (!userId) continue;
+        
+        const params = [
+          { type: TYPES.Int, value: userId },
+          { type: TYPES.NVarChar, value: title },
+          { type: TYPES.NVarChar, value: body || '' },
+          { type: TYPES.NVarChar, value: icon || 'bell' },
+          { type: TYPES.NVarChar, value: icon_bg_color || 'gray' },
+          { type: TYPES.NVarChar, value: type || 'general' },
+          { type: TYPES.NVarChar, value: data ? JSON.stringify(data) : null }
+        ];
+        
+        await database.executeQuery(insertQuery, params);
+      }
+      
+      res.status(200).json({ 
+        message: `Notification stored successfully for ${users.length} users` 
+      });
+    } catch (error) {
+      console.error('Error storing notification for all users:', error);
+      res.status(500).json({ 
+        error: 'Failed to store notification for all users',
+        details: error.message 
+      });
+    }
+  });
+  
 // Delete a notification
 router.delete('/delete/:notificationId', async (req, res) => {
     const notificationId = req.params.notificationId;

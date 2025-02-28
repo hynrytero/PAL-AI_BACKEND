@@ -11,6 +11,8 @@ const profileRoutes = require('./profileRoutes');
 const historyRoutes = require('./historyRoutes');
 const credentialsRoutes = require('./credentialsRoutes');
 const notificationsRoutes = require('./notificationsRoutes');
+const scanRoutes = require('./scanRoutes');
+const pushNotificationRoutes = require('./pushNotificationRoutes');
 
 // Define route mountpoints.
 router.use('/auth', authRoutes);
@@ -21,5 +23,7 @@ router.use('/profile', profileRoutes);
 router.use('/history', historyRoutes);
 router.use('/credentials', credentialsRoutes);
 router.use('/notifications', notificationsRoutes);
+router.use('/scan', scanRoutes);
+router.use('/push-notify', pushNotificationRoutes);
 
 module.exports = router;
