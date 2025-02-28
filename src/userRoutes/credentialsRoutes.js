@@ -192,28 +192,15 @@ router.post('/verify-email-change', async (req, res) => {
 
 // Change Email
 router.post('/confirm-email-change', async (req, res) => {
+
     const { user_id, otp } = req.body;
 
     try {
-        console.log('Received confirmation request:', {
-            user_id,
-            otp,
-            timestamp: new Date().toISOString()
-        });
 
         const storedData = otpStorage.get(user_id.toString());
-        console.log('Retrieved stored data:', {
-            exists: !!storedData,
-            storedData: storedData ? {
-                timestamp: new Date(storedData.timestamp).toISOString(),
-                newEmail: storedData.newEmail,
-                otpLength: storedData.otp?.length,
-                timeSinceCreation: Date.now() - storedData.timestamp + 'ms'
-            } : null
-        });
 
         if (!storedData) {
-            console.log('No OTP data found for user_id:', user_id);
+            console.log('No OTP data found');
             return res.status(400).json({
                 success: false,
                 message: 'No OTP request found'
@@ -223,15 +210,9 @@ router.post('/confirm-email-change', async (req, res) => {
         // Check if OTP is expired (10 minutes)
         const timeElapsed = Date.now() - storedData.timestamp;
         const isExpired = timeElapsed > 10 * 60 * 1000;
-        
-        console.log('OTP expiration check:', {
-            timeElapsed: timeElapsed + 'ms',
-            expirationLimit: '600000ms',
-            isExpired
-        });
 
         if (isExpired) {
-            console.log('OTP expired for user_id:', user_id);
+            console.log('OTP expired');
             otpStorage.delete(user_id.toString());
             return res.status(400).json({
                 success: false,
@@ -240,14 +221,9 @@ router.post('/confirm-email-change', async (req, res) => {
         }
 
         const otpMatches = storedData.otp === otp;
-        console.log('OTP validation:', {
-            matches: otpMatches,
-            providedLength: otp?.length,
-            storedLength: storedData.otp?.length
-        });
 
         if (!otpMatches) {
-            console.log('Invalid OTP provided for user_id:', user_id);
+            console.log('Invalid OTP provided');
             return res.status(400).json({
                 success: false,
                 message: 'Invalid OTP'
@@ -268,7 +244,7 @@ router.post('/confirm-email-change', async (req, res) => {
         ];
 
         await database.executeQuery(updateQuery, updateParams);
-        console.log('Email updated successfully for user_id:', user_id);
+        console.log('Email updated successfully');
 
         // Clear OTP data
         otpStorage.delete(user_id.toString());

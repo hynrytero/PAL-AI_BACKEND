@@ -2,7 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const config = require('./config');
-const routes = require('./userRoutes');
+const userRoutes = require('./userRoutes');
 const { errorHandler, requestLimiter } = require('./middleware');
 
 // Create Express app
@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(requestLimiter);
 
 // Routes
-app.use('/', routes);
+app.use('/', userRoutes);
 app.use(errorHandler);
 
 // Start server

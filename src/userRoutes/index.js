@@ -10,6 +10,7 @@ const forgotPasswordRoutes = require('./forgotPasswordRoutes');
 const profileRoutes = require('./profileRoutes');
 const historyRoutes = require('./historyRoutes');
 const credentialsRoutes = require('./credentialsRoutes');
+const notificationsRoutes = require('./notificationsRoutes');
 
 // Define route mountpoints.
 router.use('/auth', authRoutes);
@@ -19,5 +20,6 @@ router.use('/forgotpassword', forgotPasswordRoutes);
 router.use('/profile', profileRoutes);
 router.use('/history', historyRoutes);
 router.use('/credentials', credentialsRoutes);
+router.use('/notifications', notificationsRoutes);
 
 module.exports = router;
