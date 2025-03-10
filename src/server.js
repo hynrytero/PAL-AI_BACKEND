@@ -28,7 +28,7 @@ if (isDevelopment) {
 
 // Routes
 app.use('/', apiKeyAuth, userRoutes);
-app.use('/admin', apiKeyAuth, userRoutes);
+app.use('/admin', apiKeyAuth,adminRoutes );
 
 app.use(errorHandler);
 
