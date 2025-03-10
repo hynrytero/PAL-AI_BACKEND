@@ -5,6 +5,7 @@ const apiKeyAuth = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
   
   if (!apiKey || apiKey !== config.development.apiKey) {
+    console.log(config.development.apiKey);
     return res.status(401).json({ message: 'Invalid API key' });
   }
   
