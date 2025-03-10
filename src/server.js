@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const config = require('./config');
 const userRoutes = require('./userRoutes');
+const adminRoutes = require('./adminRoutes');
 const { errorHandler, requestLimiter,apiKeyAuth } = require('./middleware');
 
 // Check environment
@@ -27,6 +28,7 @@ if (isDevelopment) {
 
 // Routes
 app.use('/', apiKeyAuth, userRoutes);
+app.use('/admin', apiKeyAuth, userRoutes);
 
 app.use(errorHandler);
 
