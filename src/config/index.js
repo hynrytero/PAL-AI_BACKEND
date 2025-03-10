@@ -22,7 +22,7 @@ module.exports = {
     user: process.env.EMAIL_USER,
     password: process.env.EMAIL_PASSWORD
   },
-  ddevelopment: {
+  development: {
     status: process.env.NODE_ENV,
   },
   auth: {  
