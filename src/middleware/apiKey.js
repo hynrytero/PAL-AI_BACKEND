@@ -4,12 +4,11 @@ const config = require('../config');
 const apiKeyAuth = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
   
-  if (!apiKey || apiKey !== config.Auth.apiKey) {
+  if (!apiKey || apiKey !== config.auth.apiKey) {
     console.log('Config structure:', JSON.stringify(config, null, 2));
-    console.log(config.development.apiKey);
+    console.log(config.auth.apiKey);
     return res.status(401).json({ message: 'Invalid API key' });
   }
-  
   next();
 };
 

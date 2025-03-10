@@ -22,11 +22,10 @@ module.exports = {
     user: process.env.EMAIL_USER,
     password: process.env.EMAIL_PASSWORD
   },
-  development: {
-     status: process.env.NODE_ENV,
-     apiKey: process.env.API_KEY 
+  ddevelopment: {
+    status: process.env.NODE_ENV,
   },
-  Auth: {
+  auth: {  
     apiKey: process.env.API_KEY 
- }
+  }
 };
