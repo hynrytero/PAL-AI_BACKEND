@@ -9,13 +9,13 @@ router.get('/rice-leaf-scans', async (req, res) => {
       const query = `
         SELECT
           rls.rice_leaf_scan_id,
-          rls.user_id,
           rls.scan_image,
           rls.disease_confidence_score,
           rls.created_at,
           rld.rice_leaf_disease,
           rld.description as disease_description,
           rpm.description as medicine_description,
+          rls.user_id,
           up.firstname,
           up.lastname
         FROM rice_leaf_scan rls
@@ -43,8 +43,8 @@ router.get('/rice-leaf-scans', async (req, res) => {
         rice_leaf_disease: row[4].value,
         disease_description: row[5].value || 'No disease description available',
         medicine_description: row[6].value || 'No medicine information available',
-        firstname: row[7].value || '',
-        lastname: row[8].value || ''
+        firstname: row[8].value || '',
+        lastname: row[9].value || ''
       }));
       
       // Return the results
