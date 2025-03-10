@@ -17,7 +17,7 @@ app.set('trust proxy', 1);
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(requestLimiter);
+//app.use(requestLimiter);
 
 if (isDevelopment) {
   app.use((req, res, next) => {
