@@ -25,5 +25,8 @@ module.exports = {
   development: {
      status: process.env.NODE_ENV,
      apiKey: process.env.API_KEY 
-  }
+  },
+  Auth: {
+    apiKey: process.env.API_KEY 
+ }
 };
