@@ -7,27 +7,21 @@ const database = require('../db/connection');
 router.get('/rice-leaf-scans', async (req, res) => {
   try {
     const query = `
-      SELECT 
-        rls.rice_leaf_scan_id,
-        rls.user_id,
-        rls.rice_leaf_disease_id,
-        rls.scan_image,
-        rls.disease_confidence_score,
-        rls.created_at,
-        up.firstname,
-        up.lastname,
-        up.email,
-        up.profile_image
-      FROM 
-        rice_leaf_scan rls
-      LEFT JOIN
-        user_profiles up ON rls.user_id = up.user_id
-      WHERE 
-        rls.rice_leaf_disease_id != @param0
-      ORDER BY
-        rls.created_at DESC
+       SELECT 
+                rls.rice_leaf_scan_id,
+                rls.scan_image,
+                rls.disease_confidence_score,
+                rls.created_at,
+                rld.rice_leaf_disease,
+                rld.description as disease_description,
+                rpm.description as medicine_description
+            FROM rice_leaf_scan rls
+            JOIN rice_leaf_disease rld ON rls.rice_leaf_disease_id = rld.rice_leaf_disease_id
+            LEFT JOIN rice_plant_medicine rpm ON rld.medicine_id = rpm.medicine_id
+            WHERE  rls.rice_leaf_disease_id != @param0
+            ORDER BY rls.created_at DESC
     `;
-
+   
     // Parameters using your custom format
     const params = [
       { type: TYPES.Int, value: 3 }
@@ -36,14 +30,16 @@ router.get('/rice-leaf-scans', async (req, res) => {
     // Execute query using your connection pool
     const results = await database.executeQuery(query, params);
 
-    // Process the results to convert from column format to object format
-    const formattedResults = results.map(row => {
-      const formattedRow = {};
-      row.forEach(column => {
-        formattedRow[column.metadata.colName] = column.value;
-      });
-      return formattedRow;
-    });
+    // Format the results in the same style as historyRoutes.js
+    const formattedResults = results.map(row => ({
+      rice_leaf_scan_id: row[0].value,
+      scan_image: row[1].value,
+      disease_confidence_score: row[2].value,
+      created_at: row[3].value,
+      rice_leaf_disease: row[4].value,
+      disease_description: row[5].value || 'No disease description available',
+      medicine_description: row[6].value || 'No medicine information available'
+    }));
 
     // Return the results
     res.status(200).json({
