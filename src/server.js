@@ -3,10 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const config = require('./config');
 const userRoutes = require('./userRoutes');
-const { errorHandler, requestLimiter } = require('./middleware');
+const { errorHandler, requestLimiter,apiKeyAuth } = require('./middleware');
 
 // Check environment
-const isDevelopment = config.development.config === 'development';
+const isDevelopment = config.development.status === 'development';
 console.log(`Running in ${isDevelopment ? 'development' : 'production'} mode`);
 
 // Create Express app
@@ -26,7 +26,7 @@ if (isDevelopment) {
 }
 
 // Routes
-app.use('/', userRoutes);
+app.use('/', apiKeyAuth, userRoutes);
 
 app.use(errorHandler);
 

@@ -1,33 +1,40 @@
 // src/db/connection.js
 const { Connection, Request } = require('tedious');
-const { Connector } = require('@google-cloud/cloud-sql-connector');
 const config = require('../config');
+
+// Only import Cloud SQL connector when needed
+let Connector;
 
 class DatabasePool {
   constructor() {
     this.connectionPool = [];
-    this.MAX_POOL_SIZE = config.database.maxPoolSize;
-    this.isLocalDevelopment = config.development.config === 'development';
+    this.MAX_POOL_SIZE = config.database.maxPoolSize || 10;
+    
+    // Make absolutely sure we detect development mode correctly
+    console.log('Environment:', process.env.NODE_ENV);
+    this.isLocalDevelopment = process.env.NODE_ENV === 'development';
   }
 
   async createNewConnection() {
     try {
       let connectionConfig;
-      
+
       if (this.isLocalDevelopment) {
+        // Local SQL Server connection for development
+        console.log('Creating local development connection');
         connectionConfig = {
-          server: config.database.localServer || 'localhost',
+          server: 'CASPER\\SQLEXPRESS',
           authentication: {
             type: 'default',
             options: {
-              userName: config.database.user,
-              password: config.database.password,
+              userName: 'henry',
+              password: 'henry123',
             },
           },
           options: {
-            port: config.database.port || 1433,
-            database: config.database.name,
+            database: 'PAL-AI',
             trustServerCertificate: true,
+            enableArithAbort: true,
             encrypt: false,
             connectTimeout: 30000,
             requestTimeout: 30000,
@@ -35,6 +42,13 @@ class DatabasePool {
         };
       } else {
         // Cloud SQL connection for production
+        console.log('Creating production connection');
+        
+        if (!Connector) {
+          const { Connector: CloudSqlConnector } = require('@google-cloud/cloud-sql-connector');
+          Connector = CloudSqlConnector;
+        }
+        
         const connector = new Connector();
         const clientOpts = await connector.getTediousOptions({
           instanceConnectionName: config.database.server,
@@ -72,13 +86,16 @@ class DatabasePool {
       return new Promise((resolve, reject) => {
         connection.connect(err => {
           if (err) {
+            console.error('Connection error:', err);
             reject(err);
             return;
           }
+          console.log('Connection successful');
           resolve(connection);
         });
       });
     } catch (error) {
+      console.error('Error creating connection:', error);
       throw error;
     }
   }
@@ -86,7 +103,12 @@ class DatabasePool {
   async getConnection() {
     // Remove closed connections from the pool
     for (let i = this.connectionPool.length - 1; i >= 0; i--) {
-      if (this.connectionPool[i].state.name === 'Final') {
+      if (this.connectionPool[i].state.name !== 'LoggedIn') {
+        try {
+          this.connectionPool[i].close();
+        } catch (e) {
+          // Ignore errors during closing
+        }
         this.connectionPool.splice(i, 1);
       }
     }
@@ -106,59 +128,88 @@ class DatabasePool {
       return newConnection;
     }
 
-    // Wait for an available connection
-    return new Promise((resolve) => {
-      const checkInterval = setInterval(async () => {
-        const conn = this.connectionPool.find(c => 
-          c.state.name === 'LoggedIn' && !c.isExecuting);
-        if (conn) {
-          clearInterval(checkInterval);
-          resolve(conn);
-        }
-      }, 100);
-    });
+    // Create a new connection anyway if we can't find an available one
+    // This is safer than waiting indefinitely
+    if (this.connectionPool.length > 0) {
+      try {
+        // Try to close the oldest connection
+        this.connectionPool[0].close();
+      } catch (e) {
+        // Ignore errors during closing
+      }
+      this.connectionPool.splice(0, 1);
+      
+      const newConnection = await this.createNewConnection();
+      this.connectionPool.push(newConnection);
+      return newConnection;
+    }
+
+    // Create a new connection as a last resort
+    const newConnection = await this.createNewConnection();
+    this.connectionPool.push(newConnection);
+    return newConnection;
   }
 
   async executeQuery(query, params = []) {
     let connection;
-    try {
-      connection = await this.getConnection();
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    while (attempts < maxAttempts) {
+      try {
+        connection = await this.getConnection();
+        
+        return new Promise((resolve, reject) => {
+          const request = new Request(query, (err) => {
+            if (err) {
+              reject(err);
+            }
+          });
 
-      return new Promise((resolve, reject) => {
-        const request = new Request(query, (err) => {
-          if (err) {
+          params.forEach((param, index) => {
+            request.addParameter(`param${index}`, param.type, param.value);
+          });
+
+          const results = [];
+          request.on('row', (columns) => {
+            results.push(columns);
+          });
+
+          request.on('requestCompleted', () => {
+            resolve(results);
+          });
+
+          request.on('error', (err) => {
             reject(err);
+          });
+
+          connection.execSql(request);
+        });
+      } catch (error) {
+        attempts++;
+        
+        // Remove problematic connection from pool
+        if (connection) {
+          try {
+            connection.close();
+          } catch (e) {
+            // Ignore errors during closing
           }
-        });
-
-        params.forEach((param, index) => {
-          request.addParameter(`param${index}`, param.type, param.value);
-        });
-
-        const results = [];
-        request.on('row', (columns) => {
-          results.push(columns);
-        });
-
-        request.on('requestCompleted', () => {
-          resolve(results);
-        });
-
-        request.on('error', (err) => {
-          reject(err);
-        });
-
-        connection.execSql(request);
-      });
-    } catch (error) {
-      // If connection error occurs, try to create a new connection
-      if (connection && connection.state.name === 'Final') {
-        const index = this.connectionPool.indexOf(connection);
-        if (index > -1) {
-          this.connectionPool.splice(index, 1);
+          
+          const index = this.connectionPool.indexOf(connection);
+          if (index > -1) {
+            this.connectionPool.splice(index, 1);
+          }
         }
+        
+        // If we've reached max attempts, throw the error
+        if (attempts >= maxAttempts) {
+          throw error;
+        }
+        
+        // Wait a moment before retrying
+        await new Promise(resolve => setTimeout(resolve, 500 * attempts));
       }
-      throw error;
     }
   }
 }
