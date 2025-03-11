@@ -4,8 +4,12 @@ const router = express.Router();
 
 // Import route modules.
 const reportRoutes = require('./reports');
+const userRoutes = require('./users');
+
 
 // Define route mountpoints.
 router.use('/reports', reportRoutes);
+router.use('/users', userRoutes);
+
 
 module.exports = router;
