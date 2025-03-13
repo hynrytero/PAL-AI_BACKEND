@@ -176,57 +176,84 @@ router.post('/store-notification', async (req, res) => {
 
 // Store notification for all users
 router.post('/store-notification-all', async (req, res) => {
-    const { title, body, data, icon, icon_bg_color, type } = req.body;
+  const { title, body, data, icon, icon_bg_color, type } = req.body;
+  
+  console.log('Received request body:', req.body);
+  
+  if (!title) {
+    return res.status(400).json({ error: 'Title is required' });
+  }
+  
+  try {
+    // First, get all user IDs from the database
+    const getUsersQuery = `SELECT user_id FROM user_profiles`;
+    const users = await database.executeQuery(getUsersQuery, []);
     
-    if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
+    console.log('Retrieved users count:', users ? users.length : 0);
+    console.log('First few users:', users ? users.slice(0, 3) : 'none');
+    
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: 'No users found' });
     }
     
-    try {
-      // First, get all user IDs from the database
-      const getUsersQuery = `SELECT user_id FROM user_profiles`;
-      const users = await database.executeQuery(getUsersQuery, []);
+    // Prepare the notification insert query
+    const insertQuery = `
+      INSERT INTO user_notifications (user_id, title, body, icon, icon_bg_color, type, data)
+      VALUES (@param0, @param1, @param2, @param3, @param4, @param5, @param6)
+    `;
+    
+    let successCount = 0;
+    
+    // Loop through all users and insert the notification for each
+    for (const user of users) {
+      console.log('Processing user:', user);
       
-      if (!users || users.length === 0) {
-        return res.status(404).json({ error: 'No users found' });
+      // Try different ways to extract the user_id
+      const userId = user.user_id ? 
+                      (typeof user.user_id === 'object' ? user.user_id.value : user.user_id) 
+                      : null;
+      
+      console.log('Extracted userId:', userId);
+      
+      if (!userId) {
+        console.log('Skipping user due to null userId');
+        continue;
       }
       
-      // Prepare the notification insert query
-      const insertQuery = `
-        INSERT INTO user_notifications (user_id, title, body, icon, icon_bg_color, type, data)
-        VALUES (@param0, @param1, @param2, @param3, @param4, @param5, @param6)
-      `;
+      const params = [
+        { type: TYPES.Int, value: userId },
+        { type: TYPES.NVarChar, value: title },
+        { type: TYPES.NVarChar, value: body || '' },
+        { type: TYPES.NVarChar, value: icon || 'bell' },
+        { type: TYPES.NVarChar, value: icon_bg_color || 'gray' },
+        { type: TYPES.NVarChar, value: type || 'general' },
+        { type: TYPES.NVarChar, value: data ? JSON.stringify(data) : null }
+      ];
       
-      // Loop through all users and insert the notification for each
-      for (const user of users) {
-        const userId = user.user_id ? user.user_id.value : null;
-        
-        if (!userId) continue;
-        
-        const params = [
-          { type: TYPES.Int, value: userId },
-          { type: TYPES.NVarChar, value: title },
-          { type: TYPES.NVarChar, value: body || '' },
-          { type: TYPES.NVarChar, value: icon || 'bell' },
-          { type: TYPES.NVarChar, value: icon_bg_color || 'gray' },
-          { type: TYPES.NVarChar, value: type || 'general' },
-          { type: TYPES.NVarChar, value: data ? JSON.stringify(data) : null }
-        ];
-        
-        await database.executeQuery(insertQuery, params);
+      console.log('Query parameters:', params);
+      
+      try {
+        const result = await database.executeQuery(insertQuery, params);
+        console.log('Insert result:', result);
+        successCount++;
+      } catch (innerError) {
+        console.error('Error inserting notification for user', userId, ':', innerError);
       }
-      
-      res.status(200).json({ 
-        message: `Notification stored successfully for ${users.length} users` 
-      });
-    } catch (error) {
-      console.error('Error storing notification for all users:', error);
-      res.status(500).json({ 
-        error: 'Failed to store notification for all users',
-        details: error.message 
-      });
     }
-  });
+    
+    console.log(`Successfully inserted ${successCount} notifications out of ${users.length} users`);
+    
+    res.status(200).json({ 
+      message: `Notification stored successfully for ${successCount} users` 
+    });
+  } catch (error) {
+    console.error('Error storing notification for all users:', error);
+    res.status(500).json({ 
+      error: 'Failed to store notification for all users',
+      details: error.message 
+    });
+  }
+});
   
 // Delete a notification
 router.delete('/delete/:notificationId', async (req, res) => {
