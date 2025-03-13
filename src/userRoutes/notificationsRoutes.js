@@ -184,7 +184,7 @@ router.post('/store-notification-all', async (req, res) => {
     
     try {
       // First, get all user IDs from the database
-      const getUsersQuery = `SELECT user_id FROM users`;
+      const getUsersQuery = `SELECT user_id FROM user_credentials`;
       const users = await database.executeQuery(getUsersQuery, []);
       
       if (!users || users.length === 0) {
