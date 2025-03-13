@@ -178,8 +178,6 @@ router.post('/store-notification', async (req, res) => {
 router.post('/store-notification-all', async (req, res) => {
   const { title, body, data, icon, icon_bg_color, type } = req.body;
   
-  console.log('Received request body:', req.body);
-  
   if (!title) {
     return res.status(400).json({ error: 'Title is required' });
   }
@@ -188,9 +186,6 @@ router.post('/store-notification-all', async (req, res) => {
     // First, get all user IDs from the database
     const getUsersQuery = `SELECT user_id FROM user_profiles`;
     const users = await database.executeQuery(getUsersQuery, []);
-    
-    console.log('Retrieved users count:', users ? users.length : 0);
-    console.log('First few users:', users ? users.slice(0, 3) : 'none');
     
     if (!users || users.length === 0) {
       return res.status(404).json({ error: 'No users found' });
@@ -206,12 +201,28 @@ router.post('/store-notification-all', async (req, res) => {
     
     // Loop through all users and insert the notification for each
     for (const user of users) {
-      console.log('Processing user:', user);
+      // Access the actual user_id value - need to adapt this based on your database driver's structure
+      // Based on the logs, we need to find the correct path to the actual value
+      let userId = null;
       
-      // Try different ways to extract the user_id
-      const userId = user.user_id ? 
-                      (typeof user.user_id === 'object' ? user.user_id.value : user.user_id) 
-                      : null;
+      // For debugging, log the complete user object structure
+      console.log('Full user object structure:', JSON.stringify(user));
+      
+      // Try to extract user_id from the structure
+      if (user && typeof user === 'object') {
+        // If user_id is directly in the user object
+        if (user.user_id !== undefined) {
+          userId = user.user_id;
+        }
+        // If user_id is a complex object with metadata (common in some DB drivers)
+        else if (user.value !== undefined) {
+          userId = user.value;
+        }
+        // Handle arrays of columns (some DB drivers return rows as arrays)
+        else if (Array.isArray(user) && user.length > 0) {
+          userId = user[0];
+        }
+      }
       
       console.log('Extracted userId:', userId);
       
@@ -230,18 +241,13 @@ router.post('/store-notification-all', async (req, res) => {
         { type: TYPES.NVarChar, value: data ? JSON.stringify(data) : null }
       ];
       
-      console.log('Query parameters:', params);
-      
       try {
         const result = await database.executeQuery(insertQuery, params);
-        console.log('Insert result:', result);
         successCount++;
       } catch (innerError) {
         console.error('Error inserting notification for user', userId, ':', innerError);
       }
     }
-    
-    console.log(`Successfully inserted ${successCount} notifications out of ${users.length} users`);
     
     res.status(200).json({ 
       message: `Notification stored successfully for ${successCount} users` 
@@ -254,7 +260,6 @@ router.post('/store-notification-all', async (req, res) => {
     });
   }
 });
-  
 // Delete a notification
 router.delete('/delete/:notificationId', async (req, res) => {
     const notificationId = req.params.notificationId;
