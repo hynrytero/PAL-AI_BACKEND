@@ -141,7 +141,7 @@ router.put('/notifications-user/:notificationId/:status', async (req, res) => {
     }
 });
 
-// Store notification for a user
+// Store notification for a user -admin
 router.post('/store-notification', async (req, res) => {
     const { user_id, title, body, data, icon, icon_bg_color, type } = req.body;
   
@@ -174,7 +174,7 @@ router.post('/store-notification', async (req, res) => {
     }
   });
 
-// Store notification for all users
+// Store notification for all users - Admin
 router.post('/store-notification-all', async (req, res) => {
   const { title, body, data, icon, icon_bg_color, type } = req.body;
   
