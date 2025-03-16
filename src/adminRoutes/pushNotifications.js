@@ -2,7 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const { Expo } = require('expo-server-sdk');
-const database = require('../db/connection'); // Import as database instead of db
+const { TYPES } = require('tedious'); // Import TYPES from tedious
+const database = require('../db/connection');
 const expo = new Expo();
 
 // Send notification to a specific user by user_id
@@ -15,10 +16,9 @@ router.post('/notify', async (req, res) => {
   
     try {
       // Get the user's push token from database using user_id
-      // Using executeQuery instead of query and formatted params for tedious
       const userResult = await database.executeQuery(
         'SELECT push_token FROM user_credentials WHERE user_id = @param0', 
-        [{ type: 'Int', value: user_id }]
+        [{ type: TYPES.Int, value: user_id }] // Use tedious TYPES
       );
       
       if (!userResult || userResult.length === 0 || !userResult[0][0].value) {
@@ -72,10 +72,9 @@ router.post('/broadcast', async (req, res) => {
   
     try {
       // Get all valid push tokens from the database
-      // Using executeQuery instead of query
       const usersResult = await database.executeQuery(
         'SELECT push_token FROM user_credentials WHERE push_token IS NOT NULL',
-        []
+        [] // No parameters needed for this query
       );
       
       if (!usersResult || usersResult.length === 0) {
