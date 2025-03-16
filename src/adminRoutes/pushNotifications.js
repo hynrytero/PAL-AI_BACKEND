@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { Expo } = require('expo-server-sdk');
-const db = require('../db/connection'); 
+const database = require('../db/connection'); // Import as database instead of db
 const expo = new Expo();
 
 // Send notification to a specific user by user_id
@@ -15,16 +15,20 @@ router.post('/notify', async (req, res) => {
   
     try {
       // Get the user's push token from database using user_id
-      const user = await db.query('SELECT push_token FROM user_credentials WHERE user_id = ?', [user_id]);
+      // Using executeQuery instead of query and formatted params for tedious
+      const userResult = await database.executeQuery(
+        'SELECT push_token FROM user_credentials WHERE user_id = @param0', 
+        [{ type: 'Int', value: user_id }]
+      );
       
-      if (!user || user.length === 0 || !user[0].push_token) {
+      if (!userResult || userResult.length === 0 || !userResult[0][0].value) {
         return res.status(404).json({ 
           error: 'User not found or has no push token registered',
           pushedToDevice: false
         });
       }
       
-      const token = user[0].push_token;
+      const token = userResult[0][0].value;
       
       if (Expo.isExpoPushToken(token)) {
         const messages = [{
@@ -68,13 +72,17 @@ router.post('/broadcast', async (req, res) => {
   
     try {
       // Get all valid push tokens from the database
-      const users = await db.query('SELECT push_token FROM user_credentials WHERE push_token IS NOT NULL');
+      // Using executeQuery instead of query
+      const usersResult = await database.executeQuery(
+        'SELECT push_token FROM user_credentials WHERE push_token IS NOT NULL',
+        []
+      );
       
-      if (!users || users.length === 0) {
+      if (!usersResult || usersResult.length === 0) {
         return res.status(404).json({ error: 'No users with push tokens found' });
       }
       
-      const tokens = users.map(user => user.push_token);
+      const tokens = usersResult.map(user => user[0].value);
       const validTokens = tokens.filter(token => token && Expo.isExpoPushToken(token));
       
       if (validTokens.length === 0) {
