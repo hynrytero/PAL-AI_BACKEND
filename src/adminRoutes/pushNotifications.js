@@ -6,7 +6,7 @@ const { TYPES } = require('tedious');
 const database = require('../db/connection');
 const expo = new Expo();
 
-// Send notification to a specific user by user_id
+// Send notification to a specific user 
 router.post('/notify', async (req, res) => {
     const { user_id, title, body, data } = req.body;
   
@@ -15,7 +15,6 @@ router.post('/notify', async (req, res) => {
     }
   
     try {
-      // Get the user's push token from database using user_id
       const userResult = await database.executeQuery(
         'SELECT push_token FROM user_credentials WHERE user_id = @param0', 
         [{ type: TYPES.Int, value: user_id }] 
@@ -31,16 +30,14 @@ router.post('/notify', async (req, res) => {
       const token = userResult[0][0].value;
       
       if (Expo.isExpoPushToken(token)) {
-        // Swap title and notification type for push notification
         const notificationTitle = data?.type || 'General';
-        const notificationSubtitle = title || 'New Notification';
+        const notificationBody = title || 'New Notification';
         
         const messages = [{
           to: token,
           sound: 'default',
           title: notificationTitle.charAt(0).toUpperCase() + notificationTitle.slice(1),
-          subtitle: notificationSubtitle,
-          body: body || 'You have a new notification',
+          body: notificationBody,
           data: data || {}
         }];
         const chunks = expo.chunkPushNotifications(messages);
@@ -76,7 +73,6 @@ router.post('/broadcast', async (req, res) => {
     const { title, body, data } = req.body;
   
     try {
-      // Get all valid push tokens from the database
       const usersResult = await database.executeQuery(
         'SELECT push_token FROM user_credentials WHERE push_token IS NOT NULL',
         [] 
@@ -93,16 +89,14 @@ router.post('/broadcast', async (req, res) => {
         return res.status(400).json({ error: 'No valid push tokens found in database' });
       }
   
-      // Swap title and notification type for push notification
       const notificationTitle = data?.type || 'Broadcast';
-      const notificationSubtitle = title || 'Broadcast Notification';
+      const notificationBody = title || 'Broadcast Notification';
       
       const messages = validTokens.map(token => ({
         to: token,
         sound: 'default',
         title: notificationTitle.charAt(0).toUpperCase() + notificationTitle.slice(1),
-        subtitle: notificationSubtitle,
-        body: body || 'You have a new broadcast notification',
+        body: notificationBody,
         data: data || {}
       }));
   
