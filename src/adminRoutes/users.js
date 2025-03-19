@@ -56,36 +56,38 @@ router.delete('/delete-user/:userId', async (req, res) => {
   const userId = req.params.userId;
 
   try {
-    // Create a transaction to safely delete all related user data
-    const transactionQuery = `
-        BEGIN TRANSACTION;
-        -- First, delete from scan_history which depends on rice_leaf_scan
-        DELETE FROM dbo.scan_history
-        WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @userId);
-        
-        -- Then delete from rice_leaf_scan which depends on user_credentials
-        DELETE FROM dbo.rice_leaf_scan
-        WHERE user_id = @userId;
-        
-        -- Delete from user_notifications which depends on user_credentials
-        DELETE FROM dbo.user_notifications
-        WHERE user_id = @userId;
-        
-        -- Delete from user_profiles which depends on user_credentials and user_address
-        DELETE FROM dbo.user_profiles 
-        WHERE user_id = @userId;
-        
-        -- Finally delete from user_credentials
-        DELETE FROM dbo.user_credentials 
-        WHERE user_id = @userId;
-        COMMIT TRANSACTION;
-      `;
+    // Start a transaction
+    await database.executeQuery('BEGIN TRANSACTION;', []);
+
+    // Execute each statement separately with parameters
+    const deleteQueries = [
+      `DELETE FROM dbo.scan_history 
+       WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @userId);`,
+      
+      `DELETE FROM dbo.rice_leaf_scan 
+       WHERE user_id = @userId;`,
+      
+      `DELETE FROM dbo.user_notifications 
+       WHERE user_id = @userId;`,
+      
+      `DELETE FROM dbo.user_profiles 
+       WHERE user_id = @userId;`,
+      
+      `DELETE FROM dbo.user_credentials 
+       WHERE user_id = @userId;`
+    ];
 
     const params = [
       { name: 'userId', type: TYPES.Int, value: parseInt(userId) }
     ];
 
-    await database.executeQuery(transactionQuery, params);
+    // Execute each query in the transaction
+    for (const query of deleteQueries) {
+      await database.executeQuery(query, params);
+    }
+
+    // Commit the transaction
+    await database.executeQuery('COMMIT TRANSACTION;', []);
 
     res.status(200).json({
       success: true,
