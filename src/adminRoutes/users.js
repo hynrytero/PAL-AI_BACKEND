@@ -48,4 +48,61 @@ router.get('/fetch-user', async (req, res) => {
     }
   });
 
+  router.delete('/delete-user/:userId', async (req, res) => {
+    const userId = req.params.userId;
+    
+    try {
+      // Create a transaction to safely delete all related user data
+      const transactionQuery = `
+        BEGIN TRANSACTION;
+        -- First, delete from scan_history which depends on rice_leaf_scan
+        DELETE FROM dbo.scan_history
+        WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @userId);
+        
+        -- Then delete from rice_leaf_scan which depends on user_credentials
+        DELETE FROM dbo.rice_leaf_scan
+        WHERE user_id = @userId;
+        
+        -- Delete from user_notifications which depends on user_credentials
+        DELETE FROM dbo.user_notifications
+        WHERE user_id = @userId;
+        
+        -- Delete from user_profiles which depends on user_credentials and user_address
+        DELETE FROM dbo.user_profiles 
+        WHERE user_id = @userId;
+        
+        -- Finally delete from user_credentials
+        DELETE FROM dbo.user_credentials 
+        WHERE user_id = @userId;
+        COMMIT TRANSACTION;
+      `;
+      
+      const params = [
+        { name: 'userId', type: TYPES.Int, value: parseInt(userId) }
+      ];
+      
+      await database.executeQuery(transactionQuery, params);
+      
+      res.status(200).json({
+        success: true,
+        message: 'User deleted successfully'
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      
+      // Try to rollback transaction if possible
+      try {
+        await database.executeQuery('IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;', []);
+      } catch (rollbackError) {
+        console.error('Error rolling back transaction:', rollbackError);
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete user',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  });
+  
 module.exports = router;
