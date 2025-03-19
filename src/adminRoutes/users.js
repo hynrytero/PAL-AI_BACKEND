@@ -2,59 +2,62 @@
 const express = require('express');
 const { TYPES } = require('tedious');
 const router = express.Router();
-const database = require('../db/connection'); 
+const database = require('../db/connection');
 
 router.get('/fetch-user', async (req, res) => {
-    try {
-      const query = `
-        SELECT
-          up.user_id,
-          up.firstname,
-          up.lastname,
-          up.gender,
-          up.birthdate,
-          up.mobile_number,
-          up.address_id,
-          up.email,
-          up.profile_image
-        FROM user_profiles up
-        ORDER BY up.created_at DESC
-      `;
-      
-      const results = await database.executeQuery(query, []);
-      
-      const formattedResults = results.map(row => ({
-        firstname: row[0].value || '',
-        lastname: row[1].value || '',
-        gender: row[2].value || '',
-        birthdate: row[3].value,
-        mobile_number: row[4].value || '',
-        address_id: row[5].value,
-        email: row[6].value || '',
-        profile_image: row[7].value || null
-      }));
-      
-      res.status(200).json({
-        success: true,
-        count: formattedResults.length,
-        data: formattedResults
-      });
-    } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Server error while fetching user data',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  });
+  try {
+    const query = `
+      SELECT
+        up.user_id,
+        up.firstname,
+        up.lastname,
+        up.gender,
+        up.birthdate,
+        up.mobile_number,
+        up.address_id,
+        up.email,
+        up.profile_image,
+        up.created_at
+      FROM user_profiles up
+      ORDER BY up.created_at DESC
+    `;
 
-  router.delete('/delete-user/:userId', async (req, res) => {
-    const userId = req.params.userId;
-    
-    try {
-      // Create a transaction to safely delete all related user data
-      const transactionQuery = `
+    const results = await database.executeQuery(query, []);
+
+    const formattedResults = results.map(row => ({
+      user_id: row[0].value,
+      firstname: row[1].value || '',
+      lastname: row[2].value || '',
+      gender: row[3].value || '',
+      birthdate: row[4].value,
+      mobile_number: row[5].value || '',
+      address_id: row[6].value,
+      email: row[7].value || '',
+      profile_image: row[8].value || null,
+      created_at: row[9].value
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: formattedResults.length,
+      data: formattedResults
+    });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching user data',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+router.delete('/delete-user/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    // Create a transaction to safely delete all related user data
+    const transactionQuery = `
         BEGIN TRANSACTION;
         -- First, delete from scan_history which depends on rice_leaf_scan
         DELETE FROM dbo.scan_history
@@ -77,33 +80,33 @@ router.get('/fetch-user', async (req, res) => {
         WHERE user_id = @userId;
         COMMIT TRANSACTION;
       `;
-      
-      const params = [
-        { name: 'userId', type: TYPES.Int, value: parseInt(userId) }
-      ];
-      
-      await database.executeQuery(transactionQuery, params);
-      
-      res.status(200).json({
-        success: true,
-        message: 'User deleted successfully'
-      });
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      
-      // Try to rollback transaction if possible
-      try {
-        await database.executeQuery('IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;', []);
-      } catch (rollbackError) {
-        console.error('Error rolling back transaction:', rollbackError);
-      }
-      
-      res.status(500).json({
-        success: false,
-        message: 'Failed to delete user',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
+
+    const params = [
+      { name: 'userId', type: TYPES.Int, value: parseInt(userId) }
+    ];
+
+    await database.executeQuery(transactionQuery, params);
+
+    res.status(200).json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+
+    // Try to rollback transaction if possible
+    try {
+      await database.executeQuery('IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;', []);
+    } catch (rollbackError) {
+      console.error('Error rolling back transaction:', rollbackError);
     }
-  });
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 
 module.exports = router;
