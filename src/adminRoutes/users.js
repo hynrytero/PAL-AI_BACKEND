@@ -63,23 +63,23 @@ router.delete('/delete-user/:userId', async (req, res) => {
         
         -- First, delete from scan_history which depends on rice_leaf_scan
         DELETE FROM dbo.scan_history
-        WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @userId);
+        WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @param0);
         
         -- Then delete from rice_leaf_scan which depends on user_credentials
         DELETE FROM dbo.rice_leaf_scan
-        WHERE user_id = @userId;
+        WHERE user_id = @param0;
         
         -- Delete from user_notifications which depends on user_credentials
         DELETE FROM dbo.user_notifications
-        WHERE user_id = @userId;
+        WHERE user_id = @param0;
         
         -- Delete from user_profiles which depends on user_credentials
         DELETE FROM dbo.user_profiles 
-        WHERE user_id = @userId;
+        WHERE user_id = @param0;
         
         -- Finally delete from user_credentials
         DELETE FROM dbo.user_credentials 
-        WHERE user_id = @userId;
+        WHERE user_id = @param0;
         
         COMMIT TRANSACTION;
       END TRY
@@ -91,7 +91,7 @@ router.delete('/delete-user/:userId', async (req, res) => {
     `;
 
     const params = [
-      { name: 'userId', type: TYPES.Int, value: parseInt(userId) }
+      { type: TYPES.Int, value: parseInt(userId, 10) }
     ];
 
     await database.executeQuery(deleteQuery, params);
