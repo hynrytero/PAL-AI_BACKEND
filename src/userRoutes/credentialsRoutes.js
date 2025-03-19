@@ -267,4 +267,95 @@ router.post('/confirm-email-change', async (req, res) => {
     }
 });
 
+// Delete Account
+router.post('/delete-account', async (req, res) => {
+    const { user_id, password } = req.body;
+
+    if (!user_id || !password) {
+        return res.status(400).json({
+            success: false,
+            message: 'User ID and password are required'
+        });
+    }
+
+    try {
+        // First verify the password
+        const verifyQuery = `
+            SELECT password 
+            FROM user_credentials 
+            WHERE user_id = @param0
+        `;
+
+        const verifyParams = [
+            { type: TYPES.Int, value: parseInt(user_id, 10) }
+        ];
+
+        const results = await database.executeQuery(verifyQuery, verifyParams);
+
+        if (!results || results.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        const storedHash = results[0][0].value;
+        
+        if (!storedHash) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password not set for this user'
+            });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password.trim(), storedHash);
+
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                message: 'Password is incorrect'
+            });
+        }
+
+        // Execute the deletion transaction
+        const deleteQuery = `
+            BEGIN TRANSACTION;
+            -- First, delete from scan_history which depends on rice_leaf_scan
+            DELETE FROM dbo.scan_history
+            WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @param0);
+            -- Then delete from rice_leaf_scan which depends on user_credentials
+            DELETE FROM dbo.rice_leaf_scan
+            WHERE user_id = @param0;
+            -- Delete from user_notifications which depends on user_credentials
+            DELETE FROM dbo.user_notifications
+            WHERE user_id = @param0;
+            -- Delete from user_profiles which depends on user_credentials and user_address
+            DELETE FROM dbo.user_profiles 
+            WHERE user_id = @param0;
+            -- Finally delete from user_credentials
+            DELETE FROM dbo.user_credentials 
+            WHERE user_id = @param0;
+            COMMIT TRANSACTION;
+        `;
+
+        const deleteParams = [
+            { type: TYPES.Int, value: parseInt(user_id, 10) }
+        ];
+
+        await database.executeQuery(deleteQuery, deleteParams);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Account successfully deleted'
+        });
+
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error during account deletion'
+        });
+    }
+});
+
 module.exports = router;
