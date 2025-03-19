@@ -8,6 +8,7 @@ router.get('/fetch-user', async (req, res) => {
     try {
       const query = `
         SELECT
+          up.user_id,
           up.firstname,
           up.lastname,
           up.gender,
@@ -104,5 +105,5 @@ router.get('/fetch-user', async (req, res) => {
       });
     }
   });
-  
+
 module.exports = router;
