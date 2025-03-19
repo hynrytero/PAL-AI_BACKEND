@@ -1,4 +1,3 @@
-// src/db/connection.js
 const { Connection, Request } = require('tedious');
 const config = require('../config');
 
@@ -9,10 +8,10 @@ class DatabasePool {
   constructor() {
     this.connectionPool = [];
     this.MAX_POOL_SIZE = config.database.maxPoolSize || 10;
+    this.inUseConnections = new Set(); // Track connections currently in use
     
-    // Make absolutely sure we detect development mode correctly
-    console.log('Environment:', process.env.NODE_ENV);
     this.isLocalDevelopment = process.env.NODE_ENV === 'development';
+    console.log('Environment:', process.env.NODE_ENV);
   }
 
   async createNewConnection() {
@@ -82,6 +81,16 @@ class DatabasePool {
       }
 
       const connection = new Connection(connectionConfig);
+      
+      // Add event listeners for connection state changes
+      connection.on('error', (err) => {
+        console.error('Connection error event:', err);
+        this.removeConnection(connection);
+      });
+      
+      connection.on('end', () => {
+        this.removeConnection(connection);
+      });
 
       return new Promise((resolve, reject) => {
         connection.connect(err => {
@@ -99,25 +108,25 @@ class DatabasePool {
       throw error;
     }
   }
+  
+  removeConnection(connection) {
+    const index = this.connectionPool.indexOf(connection);
+    if (index > -1) {
+      this.connectionPool.splice(index, 1);
+    }
+    this.inUseConnections.delete(connection);
+  }
 
   async getConnection() {
-    // Remove closed connections from the pool
-    for (let i = this.connectionPool.length - 1; i >= 0; i--) {
-      if (this.connectionPool[i].state.name !== 'LoggedIn') {
-        try {
-          this.connectionPool[i].close();
-        } catch (e) {
-          // Ignore errors during closing
-        }
-        this.connectionPool.splice(i, 1);
-      }
-    }
-
-    // Find an available connection
+    // First, clean up any dead connections
+    this.cleanupDeadConnections();
+    
+    // Try to find an available connection that's not in use
     const availableConnection = this.connectionPool.find(conn => 
-      conn.state.name === 'LoggedIn' && !conn.isExecuting);
+      conn.state && conn.state.name === 'LoggedIn' && !this.inUseConnections.has(conn));
 
     if (availableConnection) {
+      this.inUseConnections.add(availableConnection);
       return availableConnection;
     }
 
@@ -125,29 +134,57 @@ class DatabasePool {
     if (this.connectionPool.length < this.MAX_POOL_SIZE) {
       const newConnection = await this.createNewConnection();
       this.connectionPool.push(newConnection);
+      this.inUseConnections.add(newConnection);
       return newConnection;
     }
 
-    // Create a new connection anyway if we can't find an available one
-    // This is safer than waiting indefinitely
-    if (this.connectionPool.length > 0) {
-      try {
-        // Try to close the oldest connection
-        this.connectionPool[0].close();
-      } catch (e) {
-        // Ignore errors during closing
-      }
-      this.connectionPool.splice(0, 1);
+    // Wait for a connection to become available
+    console.log('Connection pool full, waiting for an available connection...');
+    return new Promise((resolve, reject) => {
+      const checkInterval = setInterval(async () => {
+        this.cleanupDeadConnections();
+        
+        const availableConn = this.connectionPool.find(conn => 
+          conn.state && conn.state.name === 'LoggedIn' && !this.inUseConnections.has(conn));
+        
+        if (availableConn) {
+          clearInterval(checkInterval);
+          this.inUseConnections.add(availableConn);
+          resolve(availableConn);
+        } else if (this.connectionPool.length < this.MAX_POOL_SIZE) {
+          clearInterval(checkInterval);
+          try {
+            const newConn = await this.createNewConnection();
+            this.connectionPool.push(newConn);
+            this.inUseConnections.add(newConn);
+            resolve(newConn);
+          } catch (err) {
+            reject(err);
+          }
+        }
+      }, 100);
       
-      const newConnection = await this.createNewConnection();
-      this.connectionPool.push(newConnection);
-      return newConnection;
+      // Set a timeout to prevent waiting indefinitely
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        reject(new Error('Timed out waiting for available connection'));
+      }, 10000);
+    });
+  }
+  
+  cleanupDeadConnections() {
+    for (let i = this.connectionPool.length - 1; i >= 0; i--) {
+      const conn = this.connectionPool[i];
+      if (!conn.state || conn.state.name !== 'LoggedIn') {
+        try {
+          conn.close();
+        } catch (e) {
+          // Ignore errors during closing
+        }
+        this.connectionPool.splice(i, 1);
+        this.inUseConnections.delete(conn);
+      }
     }
-
-    // Create a new connection as a last resort
-    const newConnection = await this.createNewConnection();
-    this.connectionPool.push(newConnection);
-    return newConnection;
   }
 
   async executeQuery(query, params = []) {
@@ -159,7 +196,7 @@ class DatabasePool {
       try {
         connection = await this.getConnection();
         
-        return new Promise((resolve, reject) => {
+        const result = await new Promise((resolve, reject) => {
           const request = new Request(query, (err) => {
             if (err) {
               reject(err);
@@ -176,17 +213,23 @@ class DatabasePool {
           });
 
           request.on('requestCompleted', () => {
+            // Release the connection back to the pool
+            this.inUseConnections.delete(connection);
             resolve(results);
           });
 
           request.on('error', (err) => {
+            this.inUseConnections.delete(connection);
             reject(err);
           });
 
           connection.execSql(request);
         });
+        
+        return result;
       } catch (error) {
         attempts++;
+        console.error(`Query attempt ${attempts} failed:`, error);
         
         // Remove problematic connection from pool
         if (connection) {
@@ -195,11 +238,7 @@ class DatabasePool {
           } catch (e) {
             // Ignore errors during closing
           }
-          
-          const index = this.connectionPool.indexOf(connection);
-          if (index > -1) {
-            this.connectionPool.splice(index, 1);
-          }
+          this.removeConnection(connection);
         }
         
         // If we've reached max attempts, throw the error
