@@ -250,4 +250,4 @@ class DatabasePool {
   }
 }
 
-module.exports = new DatabasePool();
+module.exports = new DatabasePool
