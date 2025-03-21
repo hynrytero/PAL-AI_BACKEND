@@ -337,4 +337,41 @@ router.delete('/delete-all/:userId/clear', async (req, res) => {
     }
   });
 
+// Fetch admin and their push tokens
+router.get('/users-with-push-tokens', async (req, res) => {
+  try {
+    const query = `
+      SELECT user_id, push_token
+      FROM user_credentials
+      WHERE role_id = @param0 AND push_token IS NOT NULL
+    `;
+    
+    const params = [
+      { type: TYPES.Int, value: 0 }
+    ];
+    
+    const results = await database.executeQuery(query, params);
+    
+    const users = results.map(rowColumns => {
+      const row = {};
+      rowColumns.forEach(column => {
+        row[column.metadata.colName] = column;
+      });
+      
+      return {
+        userId: row.user_id.value,
+        pushToken: row.push_token.value
+      };
+    });
+    
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('Error fetching users with push tokens:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch users with push tokens', 
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router;
