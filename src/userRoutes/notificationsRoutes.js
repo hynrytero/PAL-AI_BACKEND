@@ -343,7 +343,7 @@ router.get('/fetch-admin', async (req, res) => {
     const query = `
       SELECT user_id, push_token
       FROM user_credentials
-      WHERE role_id = @param0 AND push_token IS NOT NULL
+      WHERE role_id = @param0
     `;
     
     const params = [
