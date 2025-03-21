@@ -338,7 +338,7 @@ router.delete('/delete-all/:userId/clear', async (req, res) => {
   });
 
 // Fetch admin and their push tokens
-router.get('/users-with-push-tokens', async (req, res) => {
+router.get('/fetch-admin', async (req, res) => {
   try {
     const query = `
       SELECT user_id, push_token
