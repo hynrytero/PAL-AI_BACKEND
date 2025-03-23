@@ -337,34 +337,34 @@ router.delete('/delete-all/:userId/clear', async (req, res) => {
   }
 });
 
+// Fetch admin Users
 router.get('/fetch-admin', async (req, res) => {
   try {
-    // Fetch all admin users with role_id = 0
     const query = `
       SELECT user_id as userId, push_token as pushToken
       FROM user_credentials
       WHERE role_id = @param0
     `;
-    
-    const params = [
-      { type: TYPES.Int, value: 0 } // Assuming 0 is your admin role ID
-    ];
-    
+
+    const params = [{ type: TYPES.Int, value: 0 }]; // Assuming 0 is your admin role ID
+
     const results = await database.executeQuery(query, params);
     
-    // Map the results to a cleaner format
+    console.log("Raw results:", results); // Debugging
+
+    // Map the results correctly
     const adminUsers = results.map(rowColumns => {
       const row = {};
       rowColumns.forEach(column => {
-        row[column.metadata.colName] = column;
+        row[column.metadata.colName] = column.value; // Extract the actual value
       });
-      
+
       return {
-        userId: row.userId ? row.userId.value : null,
-        pushToken: row.pushToken ? row.pushToken.value : null
+        userId: row.userId || null,
+        pushToken: row.pushToken || null
       };
     });
-    
+
     res.status(200).json(adminUsers);
   } catch (error) {
     console.error('Error fetching admin users:', error);
