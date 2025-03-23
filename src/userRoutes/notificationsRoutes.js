@@ -5,7 +5,7 @@ const database = require('../db/connection');
 const { TYPES } = require('tedious');
 
 // Fetch notifications for a user 
-router.get('user/:userId', async (req, res) => {
+router.get('/user/:userId', async (req, res) => {
   const userId = parseInt(req.params.userId, 10);
 
   if (isNaN(userId)) {
