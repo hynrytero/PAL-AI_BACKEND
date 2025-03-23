@@ -5,7 +5,7 @@ const database = require('../db/connection');
 const { TYPES } = require('tedious');
 
 // Fetch notifications for a user 
-router.get('/:userId', async (req, res) => {
+router.get('user/:userId', async (req, res) => {
   const userId = parseInt(req.params.userId, 10);
 
   if (isNaN(userId)) {
@@ -337,7 +337,7 @@ router.delete('/delete-all/:userId/clear', async (req, res) => {
   }
 });
 
-// Fetch admin Users
+// Fetch admin
 router.get('/fetch-admin', async (req, res) => {
   try {
     const query = `
