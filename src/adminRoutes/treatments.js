@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get treatment details by id
-router.get('/:id', async (req, res) => {
+router.get('/fetch/:id', async (req, res) => {
   try {
     const query = `
       SELECT 
