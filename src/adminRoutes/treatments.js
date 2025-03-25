@@ -15,7 +15,7 @@ router.get('/all', async (req, res) => {
       FROM rice_plant_medicine
     `;
     
-    const results = await database.executeQuery(query);
+    const results = await database.executeQuery(query,[]);
     
     const formattedResults = results.map(row => ({
       medicine_id: row[0].value,
