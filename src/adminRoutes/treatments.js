@@ -1,7 +1,7 @@
-// src/routes/treatments.js
 const express = require('express');
 const router = express.Router();
 const database = require('../db/connection');
+const { TYPES } = require('tedious'); 
 
 // Get all treatments/medicines
 router.get('/all', async (req, res) => {
@@ -15,7 +15,7 @@ router.get('/all', async (req, res) => {
       FROM rice_plant_medicine
     `;
     
-    const results = await database.executeQuery(query, []);
+    const results = await database.executeQuery(query, params);
     
     const formattedResults = results.map(row => ({
       medicine_id: row[0].value,
@@ -47,17 +47,18 @@ router.get('/fetch/:id', async (req, res) => {
         medicine_id, 
         rice_plant_medicine as name, 
         description, 
+        image
       FROM rice_plant_medicine
-      WHERE medicine_id = ?
+      WHERE medicine_id = @param0
     `;
     
-    const results = await database.executeQuery(query, [req.params.id]);
+    const params = [
+      { type: TYPES.Int, value: parseInt(req.params.id) }
+    ];
     
-    // Log the raw results to understand the structure
-    console.log('Raw database results:', results);
+    const results = await database.executeQuery(query, params);
     
-    // Check if results exist and have the expected structure
-    if (!results || results.length === 0) {
+    if (results.length === 0 || !results[0]) {
       return res.status(404).json({
         success: false,
         message: 'Treatment not found'
@@ -65,9 +66,12 @@ router.get('/fetch/:id', async (req, res) => {
     }
     
     const treatment = {
-      medicine_id: results[0].medicine_id,
-      name: results[0].rice_plant_medicine,
-      description: results[0].description || ''
+      medicine_id: results[0][0].value,
+      name: results[0][1].value,
+      description: results[0][2].value || '',
+      image: results[0][3].value ? 
+        `data:image/jpeg;base64,${results[0][3].value.toString('base64')}` : 
+        null
     };
     
     res.status(200).json({
@@ -75,11 +79,11 @@ router.get('/fetch/:id', async (req, res) => {
       data: treatment
     });
   } catch (error) {
-    console.error('Full error details:', error);
+    console.error('Database error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while fetching treatment details',
-      errorDetails: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
