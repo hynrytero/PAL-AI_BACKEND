@@ -11,7 +11,8 @@ router.get('/all', async (req, res) => {
         medicine_id, 
         rice_plant_medicine, 
         description,
-        image
+        image,
+        rice_leaf_disease_id
       FROM rice_plant_medicine
     `;
     
@@ -21,7 +22,8 @@ router.get('/all', async (req, res) => {
       medicine_id: row[0].value,
       name: row[1].value,
       description: row[2].value || '',
-      image: row[3].value || null
+      image: row[3].value || null,
+      rld_id: row[4].value
     }));
     
     res.status(200).json({
@@ -43,8 +45,7 @@ router.get('/all', async (req, res) => {
 router.get('/fetch/:id', async (req, res) => {
   try {
     const query = `
-      SELECT 
-        medicine_id, 
+      SELECT  
         rice_plant_medicine as name, 
         description, 
         image
