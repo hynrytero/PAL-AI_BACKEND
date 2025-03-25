@@ -104,13 +104,14 @@ router.get('/by-disease/:diseaseId', async (req, res) => {
   try {
     const query = `
       SELECT 
-        rp.medicine_id, 
-        rp.rice_plant_medicine as name, 
-        rp.description,
-        rp.image,
-        rp.rice_leaf_disease_id
-      FROM rice_plant_medicine rp
-      WHERE rp.rice_leaf_disease_id = @param0
+        pt.treatment_id, 
+        pt.treatment as name, 
+        pt.description,
+        rld.rice_leaf_disease_id,
+        rld.rice_leaf_disease as disease_name
+      FROM practice_treatment pt
+      JOIN rice_leaf_disease rld ON pt.rice_leaf_disease_id = rld.rice_leaf_disease_id
+      WHERE pt.rice_leaf_disease_id = @param0
     `;
     
     const params = [
@@ -120,11 +121,11 @@ router.get('/by-disease/:diseaseId', async (req, res) => {
     const results = await database.executeQuery(query, params);
     
     const formattedResults = results.map(row => ({
-      medicine_id: row[0].value,
+      treatment_id: row[0].value,
       name: row[1].value,
       description: row[2].value || '',
-      image: row[3].value || null,
-      rice_leaf_disease_id: row[4].value
+      rice_leaf_disease_id: row[3].value,
+      disease_name: row[4].value
     }));
 
     res.status(200).json({
