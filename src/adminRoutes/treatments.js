@@ -25,7 +25,7 @@ router.get('/all', async (req, res) => {
       image: row[3].value || null,
       rld_id: row[4].value
     }));
-    
+
     res.status(200).json({
       success: true,
       count: formattedResults.length,
@@ -46,11 +46,16 @@ router.get('/fetch/:id', async (req, res) => {
   try {
     const query = `
       SELECT  
-        rice_plant_medicine as name, 
-        description, 
-        image
-      FROM rice_plant_medicine
-      WHERE medicine_id = @param0
+        rp.medicine_id,
+        rp.rice_plant_medicine as name, 
+        rp.description, 
+        rp.image,
+        rld.rice_leaf_disease_id,
+        rld.rice_leaf_disease as disease_name,
+        rld.description as disease_description
+      FROM rice_plant_medicine rp
+      JOIN rice_leaf_disease rld ON rp.rice_leaf_disease_id = rld.rice_leaf_disease_id
+      WHERE rp.medicine_id = @param0
     `;
     
     const params = [
@@ -72,7 +77,12 @@ router.get('/fetch/:id', async (req, res) => {
       description: results[0][2].value || '',
       image: results[0][3].value ? 
         `data:image/jpeg;base64,${results[0][3].value.toString('base64')}` : 
-        null
+        null,
+      disease: {
+        disease_id: results[0][4].value,
+        name: results[0][5].value,
+        description: results[0][6].value || ''
+      }
     };
     
     res.status(200).json({
