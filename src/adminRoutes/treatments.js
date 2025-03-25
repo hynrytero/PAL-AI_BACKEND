@@ -4,7 +4,7 @@ const router = express.Router();
 const database = require('../db/connection');
 
 // Get all treatments/medicines
-router.get('all/', async (req, res) => {
+router.get('/all', async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -47,7 +47,6 @@ router.get('/fetch/:id', async (req, res) => {
         medicine_id, 
         rice_plant_medicine as name, 
         description, 
-        image
       FROM rice_plant_medicine
       WHERE medicine_id = ?
     `;
@@ -68,10 +67,7 @@ router.get('/fetch/:id', async (req, res) => {
     const treatment = {
       medicine_id: results[0].medicine_id,
       name: results[0].rice_plant_medicine,
-      description: results[0].description || '',
-      image: results[0].image ? 
-        `data:image/jpeg;base64,${results[0].image.toString('base64')}` : 
-        null
+      description: results[0].description || ''
     };
     
     res.status(200).json({
