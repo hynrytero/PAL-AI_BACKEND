@@ -4,7 +4,7 @@ const router = express.Router();
 const database = require('../db/connection');
 
 // Get all treatments/medicines
-router.get('/', async (req, res) => {
+router.get('all/', async (req, res) => {
   try {
     const query = `
       SELECT 

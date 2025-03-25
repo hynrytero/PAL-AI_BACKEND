@@ -1,10 +1,12 @@
+// src/userRoutes/pushNotification.js
 const express = require('express');
 const router = express.Router();
 const { Expo } = require('expo-server-sdk');
-const db = require('../db/connection'); 
+const { TYPES } = require('tedious'); 
+const database = require('../db/connection');
 const expo = new Expo();
 
-// Send notification to a specific user by user_id
+// Send notification to a specific user 
 router.post('/notify', async (req, res) => {
     const { user_id, title, body, data } = req.body;
   
@@ -13,24 +15,29 @@ router.post('/notify', async (req, res) => {
     }
   
     try {
-      // Get the user's push token from database using user_id
-      const user = await db.query('SELECT push_token FROM user_credentials WHERE user_id = ?', [user_id]);
+      const userResult = await database.executeQuery(
+        'SELECT push_token FROM user_credentials WHERE user_id = @param0', 
+        [{ type: TYPES.Int, value: user_id }] 
+      );
       
-      if (!user || user.length === 0 || !user[0].push_token) {
+      if (!userResult || userResult.length === 0 || !userResult[0][0].value) {
         return res.status(404).json({ 
           error: 'User not found or has no push token registered',
           pushedToDevice: false
         });
       }
       
-      const token = user[0].push_token;
+      const token = userResult[0][0].value;
       
       if (Expo.isExpoPushToken(token)) {
+        const notificationTitle = data?.type || 'General';
+        const notificationBody = title || 'New Notification';
+        
         const messages = [{
           to: token,
           sound: 'default',
-          title: title || 'New Notification',
-          body: body || 'You have a new notification',
+          title: notificationTitle.charAt(0).toUpperCase() + notificationTitle.slice(1),
+          body: notificationBody,
           data: data || {}
         }];
         const chunks = expo.chunkPushNotifications(messages);
@@ -66,25 +73,30 @@ router.post('/broadcast', async (req, res) => {
     const { title, body, data } = req.body;
   
     try {
-      // Get all valid push tokens from the database
-      const users = await db.query('SELECT push_token FROM user_credentials WHERE push_token IS NOT NULL');
+      const usersResult = await database.executeQuery(
+        'SELECT push_token FROM user_credentials WHERE push_token IS NOT NULL',
+        [] 
+      );
       
-      if (!users || users.length === 0) {
+      if (!usersResult || usersResult.length === 0) {
         return res.status(404).json({ error: 'No users with push tokens found' });
       }
       
-      const tokens = users.map(user => user.push_token);
+      const tokens = usersResult.map(user => user[0].value);
       const validTokens = tokens.filter(token => token && Expo.isExpoPushToken(token));
       
       if (validTokens.length === 0) {
         return res.status(400).json({ error: 'No valid push tokens found in database' });
       }
   
+      const notificationTitle = data?.type || 'Broadcast';
+      const notificationBody = title || 'Broadcast Notification';
+      
       const messages = validTokens.map(token => ({
         to: token,
         sound: 'default',
-        title: title || 'Broadcast Notification',
-        body: body || 'You have a new broadcast notification',
+        title: notificationTitle.charAt(0).toUpperCase() + notificationTitle.slice(1),
+        body: notificationBody,
         data: data || {}
       }));
   
@@ -110,7 +122,7 @@ router.post('/broadcast', async (req, res) => {
         tickets 
       });
     } catch (error) {
-      console.error('Error sending broadcast:', error);
+      console.error('Error broadcasting:', error);
       res.status(500).json({ error: 'Failed to send broadcast' });
     }
 });
