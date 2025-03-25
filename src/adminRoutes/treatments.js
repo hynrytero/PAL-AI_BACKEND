@@ -100,10 +100,9 @@ router.get('/fetch/:id', async (req, res) => {
 });
 
 // Get treatments by disease ID
+// Get treatments by disease ID
 router.get('/by-disease/:diseaseId', async (req, res) => {
   try {
-    const diseaseId = parseInt(req.params.diseaseId);
-
     const query = `
       SELECT 
         pt.treatment_id, 
@@ -111,33 +110,23 @@ router.get('/by-disease/:diseaseId', async (req, res) => {
         pt.description,
         rld.rice_leaf_disease_id,
         rld.rice_leaf_disease as disease_name
-      FROM [PAL-AI].[dbo].[practice_treatment] pt
-      JOIN [PAL-AI].[dbo].[rice_leaf_disease] rld 
-        ON pt.rice_leaf_disease_id = rld.rice_leaf_disease_id
-      WHERE pt.rice_leaf_disease_id = @diseaseId
+      FROM practice_treatment pt
+      JOIN rice_leaf_disease rld ON pt.rice_leaf_disease_id = rld.rice_leaf_disease_id
+      WHERE pt.rice_leaf_disease_id = @param0
     `;
     
     const params = [
-      { name: 'diseaseId', type: TYPES.Int, value: diseaseId }
+      { type: TYPES.Int, value: parseInt(req.params.diseaseId) }
     ];
     
     const results = await database.executeQuery(query, params);
     
-    if (!results || results.length === 0) {
-      return res.status(404).json({
-        success: true,
-        count: 0,
-        message: 'No treatments found for the specified disease ID',
-        data: []
-      });
-    }
-
     const formattedResults = results.map(row => ({
-      treatment_id: row.treatment_id,
-      name: row.name,
-      description: row.description || '',
-      rice_leaf_disease_id: row.rice_leaf_disease_id,
-      disease_name: row.disease_name
+      treatment_id: row[0].value,
+      name: row[1].value,
+      description: row[2].value || '',
+      rice_leaf_disease_id: row[3].value,
+      disease_name: row[4].value
     }));
 
     res.status(200).json({
@@ -145,21 +134,13 @@ router.get('/by-disease/:diseaseId', async (req, res) => {
       count: formattedResults.length,
       data: formattedResults
     });
-
   } catch (error) {
     console.error('Database error:', error);
-    
-    const errorResponse = {
+    res.status(500).json({
       success: false,
-      message: 'Server error while fetching treatments by disease'
-    };
-
-    if (process.env.NODE_ENV === 'development') {
-      errorResponse.error = error.message;
-      errorResponse.stack = error.stack;
-    }
-
-    res.status(500).json(errorResponse);
+      message: 'Server error while fetching treatments by disease',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
