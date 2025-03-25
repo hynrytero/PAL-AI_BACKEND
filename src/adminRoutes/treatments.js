@@ -110,7 +110,7 @@ router.get('/by-disease/:diseaseId', async (req, res) => {
         pt.description,
         rld.rice_leaf_disease_id,
         rld.rice_leaf_disease as disease_name
-      FROM practice_treatment pt
+      FROM local_practice_treatment pt
       JOIN rice_leaf_disease rld ON pt.rice_leaf_disease_id = rld.rice_leaf_disease_id
       WHERE pt.rice_leaf_disease_id = @param0
     `;
