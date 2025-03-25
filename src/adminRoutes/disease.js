@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
       SELECT 
         rice_leaf_disease_id, 
         rice_leaf_disease, 
-        description,
+        description
       FROM rice_leaf_disease
     `;
     
