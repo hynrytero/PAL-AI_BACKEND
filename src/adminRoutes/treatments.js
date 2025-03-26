@@ -290,4 +290,58 @@ router.put('/edit/:treatmentId', async (req, res) => {
   }
 });
 
+// Delete existing treatment
+router.delete('/delete/:treatmentId', async (req, res) => {
+  try {
+    const treatmentId = parseInt(req.params.treatmentId);
+
+    // Validate treatment ID
+    if (!treatmentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Treatment ID is required'
+      });
+    }
+
+    const query = `
+      DELETE FROM local_practice_treatment
+      WHERE treatment_id = @param0;
+
+      SELECT @@ROWCOUNT AS deleted_count;
+    `;
+    
+    const params = [
+      { type: TYPES.Int, value: treatmentId }
+    ];
+    
+    const results = await database.executeQuery(query, params);
+    
+    // Check if any rows were deleted
+    const deletedCount = results[0][0].value;
+    
+    if (deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Treatment not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Treatment deleted successfully',
+      data: {
+        treatment_id: treatmentId,
+        deleted_count: deletedCount
+      }
+    });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting treatment',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;
