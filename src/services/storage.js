@@ -8,8 +8,10 @@ const storage = new Storage({
 
 const bucketScan = storage.bucket(config.storage.bucketScan);
 const bucketProfile = storage.bucket(config.storage.bucketProfile);
+const bucketMedicine = storage.bucket(config.storage.bucketMedicine);
 
 module.exports = {
     bucketScan,
-    bucketProfile
+    bucketProfile,
+    bucketMedicine,
 };
