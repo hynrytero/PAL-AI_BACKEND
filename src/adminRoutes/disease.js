@@ -195,4 +195,158 @@ router.post('/new-medicine', upload.single('image'), async (req, res) => {
   }
 });
 
+//edit medicine
+router.put('/edit/:medicineId', upload.single('image'), async (req, res) => {
+  try {
+    const medicineId = parseInt(req.params.medicineId);
+    const { 
+      rice_leaf_disease_id, 
+      rice_plant_medicine, 
+      description 
+    } = req.body;
+
+    // Validate required fields
+    if (!medicineId && (!rice_leaf_disease_id && !rice_plant_medicine && !description && !req.file)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Medicine ID and at least one update field are required'
+      });
+    }
+
+    // Construct dynamic update query
+    const updateFields = [];
+    const params = [];
+    let paramCounter = 0;
+
+    if (rice_leaf_disease_id) {
+      updateFields.push(`rice_leaf_disease_id = @param${paramCounter}`);
+      params.push({ type: TYPES.Int, value: parseInt(rice_leaf_disease_id) });
+      paramCounter++;
+    }
+
+    if (rice_plant_medicine) {
+      updateFields.push(`rice_plant_medicine = @param${paramCounter}`);
+      params.push({ type: TYPES.VarChar, value: rice_plant_medicine });
+      paramCounter++;
+    }
+
+    if (description !== undefined) {
+      updateFields.push(`description = @param${paramCounter}`);
+      params.push({ type: TYPES.VarChar, value: description });
+      paramCounter++;
+    }
+
+    // Handle image update
+    if (req.file) {
+      updateFields.push(`image = @param${paramCounter}`);
+      params.push({ 
+        type: TYPES.VarBinary, 
+        value: req.file.buffer 
+      });
+      paramCounter++;
+    }
+
+    // Add medicine ID as the last parameter
+    params.push({ type: TYPES.Int, value: medicineId });
+
+    const query = `
+      UPDATE rice_plant_medicine
+      SET ${updateFields.join(', ')}
+      WHERE medicine_id = @param${paramCounter};
+
+      SELECT 
+        medicine_id, 
+        rice_leaf_disease_id, 
+        rice_plant_medicine, 
+        description,
+        CASE WHEN image IS NOT NULL THEN 'Image uploaded' ELSE NULL END as image_status
+      FROM rice_plant_medicine
+      WHERE medicine_id = @param${paramCounter};
+    `;
+    
+    const results = await database.executeQuery(query, params);
+    
+    // Check if any rows were updated
+    if (results.length === 0 || !results[0]) {
+      return res.status(404).json({
+        success: false,
+        message: 'Medicine not found or no changes made'
+      });
+    }
+
+    // Return the updated medicine details
+    const updatedMedicine = {
+      medicine_id: results[0][0].value,
+      rice_leaf_disease_id: results[0][1].value,
+      rice_plant_medicine: results[0][2].value,
+      description: results[0][3].value || null,
+      image_status: results[0][4].value
+    };
+
+    res.status(200).json({
+      success: true,
+      message: 'Medicine updated successfully',
+      data: updatedMedicine
+    });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating medicine',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Delete medicine/treatment with image
+router.delete('/delete/:medicineId', async (req, res) => {
+  try {
+    const medicineId = parseInt(req.params.medicineId);
+
+    // Validate medicine ID
+    if (!medicineId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Medicine ID is required'
+      });
+    }
+
+    // Prepare delete query
+    const query = `
+      DELETE FROM rice_plant_medicine
+      WHERE medicine_id = @param0;
+
+      SELECT @@ROWCOUNT AS deleted_count;
+    `;
+    
+    const params = [
+      { type: TYPES.Int, value: medicineId }
+    ];
+    
+    const results = await database.executeQuery(query, params);
+    // Check if any rows were deleted
+    const deletedCount = results[0][0].value;
+    
+    if (deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Medicine not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Medicine deleted successfully',
+    });
+
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting medicine',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = router;
