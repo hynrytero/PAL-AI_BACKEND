@@ -1,11 +1,12 @@
 // services/index.js
-const { bucketScan, bucketProfile } = require('./storage');
+const { bucketScan, bucketProfile, bucketMedicine } = require('./storage');
 const { transporter} = require('./email');
 const { verificationCodes, passwordResetCodes, otpStorage } = require('./verification');
 
 module.exports = {
     bucketScan,
     bucketProfile,
+    bucketMedicine,
     transporter,
     verificationCodes,
     passwordResetCodes,

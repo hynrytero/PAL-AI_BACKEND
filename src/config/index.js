@@ -1,5 +1,3 @@
-const { bucketMedicine } = require('../services/storage');
-
 // src/config/index.js
 require('dotenv').config();
 
@@ -18,7 +16,7 @@ module.exports = {
     projectId: process.env.GOOGLE_CLOUD_PROJECT,
     bucketScan: process.env.BUCKET_NAME_SCAN,
     bucketProfile: process.env.BUCKET_NAME_PROFILE,
-    bucketMedicine: process.env.BUCKET_NAME_MEDICINE
+    bucketMedicine: process.env.db.BUCKET_NAME_MEDICINE
   },
   email: {
     service: process.env.EMAIL_SERVICE,
