@@ -134,7 +134,7 @@ router.get('/disease-info/:classNumber', async (req, res) => {
             FROM 
               rice_leaf_disease rld
             LEFT JOIN 
-              practice_treatment pt ON rld.rice_leaf_disease_id = pt.rice_leaf_disease_id
+              local_practice_treatment pt ON rld.rice_leaf_disease_id = pt.rice_leaf_disease_id
             LEFT JOIN 
               rice_plant_medicine rpm ON rld.rice_leaf_disease_id = rpm.rice_leaf_disease_id
             WHERE 
