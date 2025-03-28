@@ -25,7 +25,7 @@ router.get('/scan-history/:userId', async (req, res) => {
                         description
                     FROM local_practice_treatment pt
                     WHERE pt.rice_leaf_disease_id = rld.rice_leaf_disease_id
-                    FOR JSON PATH
+                    FOR JSON PATH, INCLUDE_NULL_VALUES
                 ) as treatments,
                 (
                     SELECT 
@@ -35,7 +35,7 @@ router.get('/scan-history/:userId', async (req, res) => {
                         image
                     FROM rice_plant_medicine rpm
                     WHERE rpm.rice_leaf_disease_id = rld.rice_leaf_disease_id
-                    FOR JSON PATH
+                    FOR JSON PATH, INCLUDE_NULL_VALUES
                 ) as medicines
             FROM rice_leaf_scan rls
             JOIN rice_leaf_disease rld ON rls.rice_leaf_disease_id = rld.rice_leaf_disease_id
@@ -56,8 +56,8 @@ router.get('/scan-history/:userId', async (req, res) => {
             date: row[3].value,
             disease: row[4].value,
             disease_description: row[5].value || 'No disease description available',
-            treatments: row[6].value || [],
-            medicines: row[7].value || []
+            treatments: JSON.parse(row[6].value || '[]'),
+            medicines: JSON.parse(row[7].value || '[]')
         }));
 
         res.json(formattedResults);
