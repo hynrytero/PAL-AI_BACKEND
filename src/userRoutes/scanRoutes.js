@@ -120,54 +120,74 @@ router.get('/disease-info/:classNumber', async (req, res) => {
     try {
         const { classNumber } = req.params;
         
-        const query = `
+        // Query to get disease information
+        const diseaseQuery = `
             SELECT 
-              rld.rice_leaf_disease,
-              rld.description as disease_description,
-              pt.treatment_id,
-              pt.treatment,
-              pt.description as treatment_description,
-              rpm.medicine_id,
-              rpm.rice_plant_medicine,
-              rpm.description as medicine_description,
-              rpm.image as medicine_image
+              rice_leaf_disease,
+              description as disease_description
             FROM 
-              rice_leaf_disease rld
-            LEFT JOIN 
-              local_practice_treatment pt ON rld.rice_leaf_disease_id = pt.rice_leaf_disease_id
-            LEFT JOIN 
-              rice_plant_medicine rpm ON rld.rice_leaf_disease_id = rpm.rice_leaf_disease_id
+              rice_leaf_disease
             WHERE 
-              rld.rice_leaf_disease_id = @param0
+              rice_leaf_disease_id = @param0
+        `;
+        
+        // Query to get treatments
+        const treatmentsQuery = `
+            SELECT 
+              treatment_id,
+              treatment,
+              description as treatment_description
+            FROM 
+              local_practice_treatment
+            WHERE 
+              rice_leaf_disease_id = @param0
+        `;
+        
+        // Query to get medicines
+        const medicinesQuery = `
+            SELECT 
+              medicine_id,
+              rice_plant_medicine,
+              description as medicine_description,
+              image as medicine_image
+            FROM 
+              rice_plant_medicine
+            WHERE 
+              rice_leaf_disease_id = @param0
         `;
         
         const params = [
             { type: TYPES.Int, value: parseInt(classNumber, 10) }
         ];
         
-        const result = await database.executeQuery(query, params);
+        // Execute all queries
+        const [diseaseResult, treatmentsResult, medicinesResult] = await Promise.all([
+            database.executeQuery(diseaseQuery, params),
+            database.executeQuery(treatmentsQuery, params),
+            database.executeQuery(medicinesQuery, params)
+        ]);
         
-        if (result.length === 0) {
+        if (diseaseResult.length === 0) {
             return res.status(404).json({ 
                 error: 'No disease information found for the given class number' 
             });
         }
         
-        // Convert Tedious result to a more readable object
+        // Convert results to more readable objects
         const diseaseInfo = {
-            rice_leaf_disease: result[0][0].value,
-            disease_description: result[0][1].value,
-            treatment: {
-                id: result[0][2].value,
-                name: result[0][3].value,
-                description: result[0][4].value
-            },
-            medicine: {
-                id: result[0][5].value,
-                name: result[0][6].value,
-                description: result[0][7].value,
-                image: result[0][8].value
-            }
+            rice_leaf_disease: diseaseResult[0][0].value,
+            disease_description: diseaseResult[0][1].value,
+            treatments: treatmentsResult.map(row => ({
+                id: row[0].value,
+                name: row[1].value,
+                description: row[2].value
+            })),
+            medicines: medicinesResult.map(row => ({
+                id: row[0].value,
+                name: row[1].value,
+                description: row[2].value,
+                image: row[3].value
+            }))
         };
         
         res.json(diseaseInfo);
