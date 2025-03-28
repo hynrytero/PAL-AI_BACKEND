@@ -124,18 +124,19 @@ router.get('/disease-info/:classNumber', async (req, res) => {
             SELECT 
               rld.rice_leaf_disease,
               rld.description as disease_description,
-              rld.medicine_id,
-              rld.treatment_id,
-              lpt.treatment,
-              lpt.description as treatment_description,
+              pt.treatment_id,
+              pt.treatment,
+              pt.description as treatment_description,
+              rpm.medicine_id,
               rpm.rice_plant_medicine,
-              rpm.description as medicine_description
+              rpm.description as medicine_description,
+              rpm.image as medicine_image
             FROM 
               rice_leaf_disease rld
             LEFT JOIN 
-              local_practice_treatment lpt ON rld.treatment_id = lpt.treatment_id
+              practice_treatment pt ON rld.rice_leaf_disease_id = pt.rice_leaf_disease_id
             LEFT JOIN 
-              rice_plant_medicine rpm ON rld.medicine_id = rpm.medicine_id
+              rice_plant_medicine rpm ON rld.rice_leaf_disease_id = rpm.rice_leaf_disease_id
             WHERE 
               rld.rice_leaf_disease_id = @param0
         `;
@@ -156,12 +157,17 @@ router.get('/disease-info/:classNumber', async (req, res) => {
         const diseaseInfo = {
             rice_leaf_disease: result[0][0].value,
             disease_description: result[0][1].value,
-            medicine_id: result[0][2].value,
-            treatment_id: result[0][3].value,
-            treatment: result[0][4].value,
-            treatment_description: result[0][5].value,
-            rice_plant_medicine: result[0][6].value,
-            medicine_description: result[0][7].value
+            treatment: {
+                id: result[0][2].value,
+                name: result[0][3].value,
+                description: result[0][4].value
+            },
+            medicine: {
+                id: result[0][5].value,
+                name: result[0][6].value,
+                description: result[0][7].value,
+                image: result[0][8].value
+            }
         };
         
         res.json(diseaseInfo);
