@@ -19,27 +19,23 @@ router.get('/scan-history/:userId', async (req, res) => {
                 rld.rice_leaf_disease,
                 rld.description as disease_description,
                 (
-                    SELECT JSON_AGG(
-                        JSON_BUILD_OBJECT(
-                            'id', pt.treatment_id,
-                            'name', pt.treatment,
-                            'description', pt.description
-                        )
-                    )
+                    SELECT 
+                        treatment_id as id,
+                        treatment as name,
+                        description
                     FROM local_practice_treatment pt
                     WHERE pt.rice_leaf_disease_id = rld.rice_leaf_disease_id
+                    FOR JSON PATH
                 ) as treatments,
                 (
-                    SELECT JSON_AGG(
-                        JSON_BUILD_OBJECT(
-                            'id', rpm.medicine_id,
-                            'name', rpm.rice_plant_medicine,
-                            'description', rpm.description,
-                            'image', rpm.image
-                        )
-                    )
+                    SELECT 
+                        medicine_id as id,
+                        rice_plant_medicine as name,
+                        description,
+                        image
                     FROM rice_plant_medicine rpm
                     WHERE rpm.rice_leaf_disease_id = rld.rice_leaf_disease_id
+                    FOR JSON PATH
                 ) as medicines
             FROM rice_leaf_scan rls
             JOIN rice_leaf_disease rld ON rls.rice_leaf_disease_id = rld.rice_leaf_disease_id
