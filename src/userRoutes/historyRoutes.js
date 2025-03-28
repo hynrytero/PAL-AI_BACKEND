@@ -16,12 +16,31 @@ router.get('/scan-history/:userId', async (req, res) => {
                 rls.created_at,
                 rld.rice_leaf_disease,
                 rld.description as disease_description,
-                rpm.rice_plant_medicine,
-                rpm.description as medicine_description,
-                rpm.image as medicine_image
+                (
+                    SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'medicine_id', rpm.medicine_id,
+                            'name', rpm.rice_plant_medicine,
+                            'description', rpm.description,
+                            'image', rpm.image
+                        )
+                    )
+                    FROM rice_plant_medicine rpm
+                    WHERE rpm.rice_leaf_disease_id = rld.rice_leaf_disease_id
+                ) as medicines,
+                (
+                    SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'treatment_id', pt.treatment_id,
+                            'name', pt.treatment,
+                            'description', pt.description
+                        )
+                    )
+                    FROM practice_treatment pt
+                    WHERE pt.rice_leaf_disease_id = rld.rice_leaf_disease_id
+                ) as treatments
             FROM rice_leaf_scan rls
             JOIN rice_leaf_disease rld ON rls.rice_leaf_disease_id = rld.rice_leaf_disease_id
-            LEFT JOIN rice_plant_medicine rpm ON rld.rice_leaf_disease_id = rpm.rice_leaf_disease_id
             WHERE rls.user_id = @param0
             ORDER BY rls.created_at DESC
         `;
@@ -39,9 +58,8 @@ router.get('/scan-history/:userId', async (req, res) => {
             date: row[3].value,
             disease: row[4].value,
             diseaseDescription: row[5].value || 'No disease description available',
-            medicine: row[6].value || 'No medicine name available',
-            medicineDescription: row[7].value || 'No medicine information available',
-            medicineImage: row[8].value || null
+            medicines: row[6].value || [],
+            treatments: row[7].value || []
         }));
 
         res.json(formattedResults);
