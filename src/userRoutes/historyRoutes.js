@@ -9,15 +9,38 @@ router.get('/scan-history/:userId', async (req, res) => {
         const userId = req.params.userId;
         console.log('Fetching scans for userId:', userId);
         
-        // Query to get scan information with disease details
-        const scanQuery = `
+        // Single optimized query that gets all required data
+        const query = `
             SELECT 
                 rls.rice_leaf_scan_id,
                 rls.scan_image,
                 rls.disease_confidence_score,
                 rls.created_at,
                 rld.rice_leaf_disease,
-                rld.description as disease_description
+                rld.description as disease_description,
+                (
+                    SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'id', pt.treatment_id,
+                            'name', pt.treatment,
+                            'description', pt.description
+                        )
+                    )
+                    FROM local_practice_treatment pt
+                    WHERE pt.rice_leaf_disease_id = rld.rice_leaf_disease_id
+                ) as treatments,
+                (
+                    SELECT JSON_AGG(
+                        JSON_BUILD_OBJECT(
+                            'id', rpm.medicine_id,
+                            'name', rpm.rice_plant_medicine,
+                            'description', rpm.description,
+                            'image', rpm.image
+                        )
+                    )
+                    FROM rice_plant_medicine rpm
+                    WHERE rpm.rice_leaf_disease_id = rld.rice_leaf_disease_id
+                ) as medicines
             FROM rice_leaf_scan rls
             JOIN rice_leaf_disease rld ON rls.rice_leaf_disease_id = rld.rice_leaf_disease_id
             WHERE rls.user_id = @param0
@@ -28,57 +51,17 @@ router.get('/scan-history/:userId', async (req, res) => {
             { type: TYPES.Int, value: parseInt(userId) }
         ];
 
-        const scanResults = await database.executeQuery(scanQuery, params);
+        const results = await database.executeQuery(query, params);
         
-        // Process each scan result to include treatments and medicines
-        const formattedResults = await Promise.all(scanResults.map(async (row) => {
-            const diseaseId = row[4].value; // rice_leaf_disease_id
-            
-            // Get treatments for this disease
-            const treatmentsQuery = `
-                SELECT 
-                    treatment_id,
-                    treatment,
-                    description as treatment_description
-                FROM local_practice_treatment
-                WHERE rice_leaf_disease_id = @param0
-            `;
-            
-            // Get medicines for this disease
-            const medicinesQuery = `
-                SELECT 
-                    medicine_id,
-                    rice_plant_medicine,
-                    description as medicine_description,
-                    image as medicine_image
-                FROM rice_plant_medicine
-                WHERE rice_leaf_disease_id = @param0
-            `;
-            
-            const [treatmentsResult, medicinesResult] = await Promise.all([
-                database.executeQuery(treatmentsQuery, [{ type: TYPES.Int, value: diseaseId }]),
-                database.executeQuery(medicinesQuery, [{ type: TYPES.Int, value: diseaseId }])
-            ]);
-
-            return {
-                id: row[0].value,
-                image: row[1].value,
-                confidence: Math.round(row[2].value * 100),
-                date: row[3].value,
-                disease: row[4].value,
-                disease_description: row[5].value || 'No disease description available',
-                treatments: treatmentsResult.map(t => ({
-                    id: t[0].value,
-                    name: t[1].value,
-                    description: t[2].value
-                })),
-                medicines: medicinesResult.map(m => ({
-                    id: m[0].value,
-                    name: m[1].value,
-                    description: m[2].value,
-                    image: m[3].value
-                }))
-            };
+        const formattedResults = results.map(row => ({
+            id: row[0].value,
+            image: row[1].value,
+            confidence: Math.round(row[2].value * 100),
+            date: row[3].value,
+            disease: row[4].value,
+            disease_description: row[5].value || 'No disease description available',
+            treatments: row[6].value || [],
+            medicines: row[7].value || []
         }));
 
         res.json(formattedResults);
