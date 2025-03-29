@@ -1,9 +1,11 @@
-// src/userRoutes/historyRoutes.js
 const express = require('express');
 const router = express.Router();
 const database = require('../db/connection');
 const { TYPES } = require('tedious');
+const axios = require('axios');
+const cheerio = require('cheerio');
 
+// Existing route for scan history
 router.get('/scan-history/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
@@ -65,6 +67,76 @@ router.get('/scan-history/:userId', async (req, res) => {
         console.error('Error fetching scan history:', error);
         res.status(500).json({ 
             error: 'Failed to fetch scan history',
+            details: error.message
+        });
+    }
+});
+
+// New endpoint for scraping text from a website
+router.post('/scrape-text', async (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.status(400).json({ error: 'URL is required' });
+        }
+
+        console.log('Scraping text data from:', url);
+        
+        const response = await axios.get(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+        
+        const $ = cheerio.load(response.data);
+        
+        // Initialize object to store sections
+        const scrapedContent = {
+            whatItDoes: '',
+            whyAndWhereItOccurs: '',
+            howToIdentify: ''
+        };
+
+        // Function to get paragraphs after a heading until the next h2
+        const getParagraphsAfterHeading = (heading) => {
+            const paragraphs = [];
+            let current = heading.next();
+            
+            while (current.length && !current.is('h2')) {
+                if (current.is('p')) {
+                    paragraphs.push(current.text().trim());
+                }
+                current = current.next();
+            }
+            
+            return paragraphs.join('\n\n');
+        };
+
+        // Get content for each section
+        $('h2').each((_, element) => {
+            const heading = $(element);
+            const headingText = heading.text().trim().toLowerCase();
+            
+            if (headingText === 'what it does') {
+                scrapedContent.whatItDoes = getParagraphsAfterHeading(heading);
+            } else if (headingText === 'why and where it occurs') {
+                scrapedContent.whyAndWhereItOccurs = getParagraphsAfterHeading(heading);
+            } else if (headingText === 'how to identify') {
+                scrapedContent.howToIdentify = getParagraphsAfterHeading(heading);
+            }
+        });
+        
+        res.json({ 
+            url,
+            content: scrapedContent,
+            timestamp: new Date()
+        });
+        
+    } catch (error) {
+        console.error('Error scraping website:', error);
+        res.status(500).json({ 
+            error: 'Failed to scrape website',
             details: error.message
         });
     }

@@ -13,9 +13,11 @@
   "dependencies": {
     "@google-cloud/cloud-sql-connector": "^1.6.1",
     "@google-cloud/storage": "^7.15.2",
+    "axios": "^1.8.4",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "body-parser": "^1.20.3",
+    "cheerio": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "expo-server-sdk": "^3.14.0",
