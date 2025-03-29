@@ -73,7 +73,7 @@ router.get('/scan-history/:userId', async (req, res) => {
 });
 
 // New endpoint for scraping text from a website
-router.post('/scrape-text', async (req, res) => {
+router.post('/scrape-text/diseaseInfo', async (req, res) => {
     try {
         const { url } = req.body;
         
