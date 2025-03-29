@@ -72,7 +72,7 @@ router.get('/scan-history/:userId', async (req, res) => {
     }
 });
 
-// New endpoint for scraping text from a website
+// endpoint for scraping disease info from a website
 router.post('/scrape-text/diseaseInfo', async (req, res) => {
     try {
         const { url } = req.body;
@@ -124,6 +124,86 @@ router.post('/scrape-text/diseaseInfo', async (req, res) => {
                 scrapedContent.whyAndWhereItOccurs = getParagraphsAfterHeading(heading);
             } else if (headingText === 'how to identify') {
                 scrapedContent.howToIdentify = getParagraphsAfterHeading(heading);
+            }
+        });
+        
+        res.json({ 
+            url,
+            content: scrapedContent,
+            timestamp: new Date()
+        });
+        
+    } catch (error) {
+        console.error('Error scraping website:', error);
+        res.status(500).json({ 
+            error: 'Failed to scrape website',
+            details: error.message
+        });
+    }
+});
+
+router.post('/scrape-text/diseaseTreatment', async (req, res) => {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.status(400).json({ error: 'URL is required' });
+        }
+
+        console.log('Scraping text data from:', url);
+        
+        const response = await axios.get(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+        
+        const $ = cheerio.load(response.data);
+        
+        // Initialize object to store sections
+        const scrapedContent = {
+            Howtomanage: {
+                text: '',
+                lists: []
+            }
+        };
+
+        // Function to get paragraphs and lists after a heading until the next h2
+        const getContentAfterHeading = (heading) => {
+            const content = {
+                text: [],
+                lists: []
+            };
+            let current = heading.next();
+            
+            while (current.length && !current.is('h2')) {
+                if (current.is('p')) {
+                    content.text.push(current.text().trim());
+                }
+                if (current.is('ul, ol')) {
+                    const listItems = [];
+                    current.find('li').each((_, item) => {
+                        listItems.push($(item).text().trim());
+                    });
+                    content.lists.push(listItems);
+                }
+                current = current.next();
+            }
+            
+            return content;
+        };
+
+        // Get content for each section
+        $('h2').each((_, element) => {
+            const heading = $(element);
+            const headingText = heading.text().trim().toLowerCase();
+            
+            if (headingText === 'how to manage') {
+                const content = getContentAfterHeading(heading);
+                scrapedContent.Howtomanage = {
+                    text: content.text.join('\n\n'),
+                    lists: content.lists
+                };
             }
         });
         
