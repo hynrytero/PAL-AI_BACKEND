@@ -93,24 +93,43 @@ router.post('/scrape-text/diseaseInfo', async (req, res) => {
         
         // Initialize object to store sections
         const scrapedContent = {
-            whatItDoes: '',
-            whyAndWhereItOccurs: '',
-            howToIdentify: ''
+            whatItDoes: {
+                text: '',
+                lists: []
+            },
+            whyAndWhereItOccurs: {
+                text: '',
+                lists: []
+            },
+            howToIdentify: {
+                text: '',
+                lists: []
+            }
         };
 
-        // Function to get paragraphs after a heading until the next h2
-        const getParagraphsAfterHeading = (heading) => {
-            const paragraphs = [];
+        // Function to get paragraphs and lists after a heading until the next h2
+        const getContentAfterHeading = (heading) => {
+            const content = {
+                text: [],
+                lists: []
+            };
             let current = heading.next();
             
             while (current.length && !current.is('h2')) {
                 if (current.is('p')) {
-                    paragraphs.push(current.text().trim());
+                    content.text.push(current.text().trim());
+                }
+                if (current.is('ul, ol')) {
+                    const listItems = [];
+                    current.find('li').each((_, item) => {
+                        listItems.push($(item).text().trim());
+                    });
+                    content.lists.push(listItems);
                 }
                 current = current.next();
             }
             
-            return paragraphs.join('\n\n');
+            return content;
         };
 
         // Get content for each section
@@ -119,11 +138,23 @@ router.post('/scrape-text/diseaseInfo', async (req, res) => {
             const headingText = heading.text().trim().toLowerCase();
             
             if (headingText === 'what it does') {
-                scrapedContent.whatItDoes = getParagraphsAfterHeading(heading);
+                const content = getContentAfterHeading(heading);
+                scrapedContent.whatItDoes = {
+                    text: content.text.join('\n\n'),
+                    lists: content.lists
+                };
             } else if (headingText === 'why and where it occurs') {
-                scrapedContent.whyAndWhereItOccurs = getParagraphsAfterHeading(heading);
+                const content = getContentAfterHeading(heading);
+                scrapedContent.whyAndWhereItOccurs = {
+                    text: content.text.join('\n\n'),
+                    lists: content.lists
+                };
             } else if (headingText === 'how to identify') {
-                scrapedContent.howToIdentify = getParagraphsAfterHeading(heading);
+                const content = getContentAfterHeading(heading);
+                scrapedContent.howToIdentify = {
+                    text: content.text.join('\n\n'),
+                    lists: content.lists
+                };
             }
         });
         
