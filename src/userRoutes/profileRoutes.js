@@ -20,7 +20,6 @@ router.get('/fetch-profile/:userId', async (req, res) => {
                 birthdate,
                 gender,
                 mobile_number,
-                address_id,
                 email,
                 profile_image,
                 created_at,
