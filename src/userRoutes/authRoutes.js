@@ -24,7 +24,7 @@ router.post("/login", async (req, res) => {
                 up.email
             FROM user_credentials uc
             LEFT JOIN user_profiles up ON uc.user_id = up.user_id
-            WHERE uc.username = @param0 OR up.email = @param0
+            WHERE uc.username COLLATE SQL_Latin1_General_CP1_CS_AS = @param0 OR up.email = @param0
         `;
         
         const params = [
