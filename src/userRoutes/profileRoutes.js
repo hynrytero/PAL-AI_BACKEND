@@ -13,19 +13,26 @@ router.get('/fetch-profile/:userId', async (req, res) => {
     try {
         const query = `
             SELECT 
-                user_profiles_id,
-                user_id,
-                firstname,
-                lastname,
-                birthdate,
-                gender,
-                mobile_number,
-                email,
-                profile_image,
-                created_at,
-                updated_at
-            FROM user_profiles
-            WHERE user_id = @param0
+                up.user_profiles_id,
+                up.user_id,
+                up.address_id,
+                up.firstname,
+                up.lastname,
+                up.birthdate,
+                up.gender,
+                up.mobile_number,
+                up.email,
+                up.profile_image,
+                up.years_experience,
+                up.created_at,
+                up.updated_at,
+                ua.region,
+                ua.province,
+                ua.city,
+                ua.barangay
+            FROM user_profiles up
+            LEFT JOIN user_address ua ON up.address_id = ua.address_id
+            WHERE up.user_id = @param0
         `;
         
         const params = [
@@ -55,7 +62,15 @@ router.get('/fetch-profile/:userId', async (req, res) => {
                     contactNumber: userProfile.mobile_number,
                     birthdate: userProfile.birthdate,
                     gender: userProfile.gender,
-                    image: userProfile.profile_image
+                    image: userProfile.profile_image,
+                    addressId: userProfile.address_id,
+                    yearsExperience: userProfile.years_experience,
+                    address: {
+                        region: userProfile.region,
+                        province: userProfile.province,
+                        city: userProfile.city,
+                        barangay: userProfile.barangay
+                    }
                 }
             });
         } else {
@@ -94,7 +109,7 @@ router.post('/upload-profile', multer().single('image'), async (req, res) => {
 // Update Profile
 router.put('/update', async (req, res) => {
     try {
-        const { userId, firstname, lastname, birthdate, contactNumber, image } = req.body;
+        const { userId, firstname, lastname, birthdate, contactNumber, image, addressId, yearsExperience } = req.body;
 
         // Validate required fields
         if (!userId) {
@@ -138,6 +153,18 @@ router.put('/update', async (req, res) => {
         if (image) {
             updateFields.push(`profile_image = @param${paramIndex}`);
             params.push({ type: TYPES.NVarChar, value: image });
+            paramIndex++;
+        }
+
+        if (addressId) {
+            updateFields.push(`address_id = @param${paramIndex}`);
+            params.push({ type: TYPES.Int, value: parseInt(addressId, 10) });
+            paramIndex++;
+        }
+
+        if (yearsExperience) {
+            updateFields.push(`years_experience = @param${paramIndex}`);
+            params.push({ type: TYPES.Int, value: parseInt(yearsExperience, 10) });
             paramIndex++;
         }
 
