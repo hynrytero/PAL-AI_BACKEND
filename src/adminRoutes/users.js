@@ -86,6 +86,10 @@ router.delete('/delete-user/:userId', async (req, res) => {
         DELETE FROM dbo.user_profiles 
         WHERE user_id = @param0;
         
+        -- Delete the address associated with the user
+        DELETE FROM dbo.user_address
+        WHERE address_id = (SELECT address_id FROM dbo.user_profiles WHERE user_id = @param0);
+        
         -- Finally delete from user_credentials
         DELETE FROM dbo.user_credentials 
         WHERE user_id = @param0;
