@@ -83,7 +83,7 @@ router.post("/pre-signup", async (req, res) => {
 // Complete Signup with Verification Code
 router.post("/complete-signup", async (req, res) => {
     try {
-        const { email, verificationCode, years_experience = 0, region, province, city, barangay } = req.body;
+        const { email, verificationCode } = req.body;
 
         // Retrieve stored registration data
         const tempRegData = verificationCodes.get(email);
@@ -133,17 +133,17 @@ router.post("/complete-signup", async (req, res) => {
         { type: TYPES.NVarChar, value: tempRegData.username },
         { type: TYPES.Int, value: DEFAULT_ROLE_ID },
         { type: TYPES.NVarChar, value: hashedPassword },
-        { type: TYPES.NVarChar, value: region },
-        { type: TYPES.NVarChar, value: province },
-        { type: TYPES.NVarChar, value: city },
-        { type: TYPES.NVarChar, value: barangay },
+        { type: TYPES.NVarChar, value: tempRegData.region },
+        { type: TYPES.NVarChar, value: tempRegData.province },
+        { type: TYPES.NVarChar, value: tempRegData.city },
+        { type: TYPES.NVarChar, value: tempRegData.barangay },
         { type: TYPES.NVarChar, value: tempRegData.firstname },
         { type: TYPES.NVarChar, value: tempRegData.lastname },
         { type: TYPES.Date, value: new Date(tempRegData.birthdate) },
         { type: TYPES.NVarChar, value: tempRegData.gender },
         { type: TYPES.NVarChar, value: email },
         { type: TYPES.NVarChar, value: tempRegData.mobilenumber },
-        { type: TYPES.Int, value: years_experience }
+        { type: TYPES.Int, value: tempRegData.yearsOfExperience }
     ];
 
         const userResult = await database.executeQuery(registrationQuery, registrationParams);
