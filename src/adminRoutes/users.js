@@ -82,13 +82,13 @@ router.delete('/delete-user/:userId', async (req, res) => {
         DELETE FROM dbo.user_notifications
         WHERE user_id = @param0;
         
+        --Delete the address associated with the user
+        DELETE FROM dbo.user_address
+        WHERE address_id = (SELECT address_id FROM dbo.user_profiles WHERE user_id = @param0);
+
         -- Delete from user_profiles which depends on user_credentials
         DELETE FROM dbo.user_profiles 
         WHERE user_id = @param0;
-        
-        -- Delete the address associated with the user
-        DELETE FROM dbo.user_address
-        WHERE address_id = (SELECT address_id FROM dbo.user_profiles WHERE user_id = @param0);
         
         -- Finally delete from user_credentials
         DELETE FROM dbo.user_credentials 
@@ -115,7 +115,7 @@ router.delete('/delete-user/:userId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting user:', error);
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to delete user',
