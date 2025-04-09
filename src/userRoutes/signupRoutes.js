@@ -10,14 +10,6 @@ const { generateVerificationCode } = require('../utils');
 // Pre-signup process
 router.post("/pre-signup", async (req, res) => {
     try {
-        // Validate API key
-        const apiKey = req.headers['x-api-key'];
-        if (!apiKey || apiKey !== process.env.AUTH_KEY) {
-            return res.status(401).json({
-                message: "Invalid API key"
-            });
-        }
-
         const { username, email, password, firstname, lastname, birthdate, gender, mobilenumber, yearsOfExperience } = req.body;
 
         // Check if email already exists
