@@ -10,7 +10,7 @@ const { generateVerificationCode } = require('../utils');
 // Pre-signup process
 router.post("/pre-signup", async (req, res) => {
     try {
-        const { username, email, password, firstname, lastname, birthdate, gender, mobilenumber, yearsOfExperience } = req.body;
+        const { username, email, password, firstname, lastname, birthdate, gender, mobilenumber, yearsOfExperience, region, province, city, barangay } = req.body;
 
         // Check if email already exists
         const emailQuery = `
@@ -41,6 +41,10 @@ router.post("/pre-signup", async (req, res) => {
             gender,
             mobilenumber,
             yearsOfExperience,
+            region,
+            province,
+            city,
+            barangay,
             verificationCode,
             codeExpiry
         };
@@ -79,7 +83,7 @@ router.post("/pre-signup", async (req, res) => {
 // Complete Signup with Verification Code
 router.post("/complete-signup", async (req, res) => {
     try {
-        const { email, verificationCode, years_experience = 0 } = req.body;
+        const { email, verificationCode, years_experience = 0, region, province, city, barangay } = req.body;
 
         // Retrieve stored registration data
         const tempRegData = verificationCodes.get(email);
@@ -100,7 +104,7 @@ router.post("/complete-signup", async (req, res) => {
 
         const DEFAULT_ROLE_ID = 1;
 
-        // Start a transaction to insert user credentials and profile
+        // Start a transaction to insert user credentials, profile, and address
         const registrationQuery = `
         BEGIN TRANSACTION;
         
@@ -109,10 +113,15 @@ router.post("/complete-signup", async (req, res) => {
 
         DECLARE @newUserId INT = SCOPE_IDENTITY();
         
+        INSERT INTO user_address (region, province, city, barangay)
+        VALUES (@param3, @param4, @param5, @param6);
+
+        DECLARE @newAddressId INT = SCOPE_IDENTITY();
+
         INSERT INTO user_profiles (
-            user_id, firstname, lastname, birthdate, gender, email, mobile_number, years_experience
+            user_id, address_id, firstname, lastname, birthdate, gender, email, mobile_number, years_experience
         ) VALUES (
-            @newUserId, @param3, @param4, @param5, @param6, @param7, @param8, @param9
+            @newUserId, @newAddressId, @param7, @param8, @param9, @param10, @param11, @param12, @param13
         );
         
         COMMIT TRANSACTION;
@@ -124,6 +133,10 @@ router.post("/complete-signup", async (req, res) => {
         { type: TYPES.NVarChar, value: tempRegData.username },
         { type: TYPES.Int, value: DEFAULT_ROLE_ID },
         { type: TYPES.NVarChar, value: hashedPassword },
+        { type: TYPES.NVarChar, value: region },
+        { type: TYPES.NVarChar, value: province },
+        { type: TYPES.NVarChar, value: city },
+        { type: TYPES.NVarChar, value: barangay },
         { type: TYPES.NVarChar, value: tempRegData.firstname },
         { type: TYPES.NVarChar, value: tempRegData.lastname },
         { type: TYPES.Date, value: new Date(tempRegData.birthdate) },
