@@ -10,7 +10,15 @@ const { generateVerificationCode } = require('../utils');
 // Pre-signup process
 router.post("/pre-signup", async (req, res) => {
     try {
-        const { username, email, password, firstname, lastname, birthdate, gender, mobilenumber } = req.body;
+        // Validate API key
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey || apiKey !== process.env.AUTH_KEY) {
+            return res.status(401).json({
+                message: "Invalid API key"
+            });
+        }
+
+        const { username, email, password, firstname, lastname, birthdate, gender, mobilenumber, yearsOfExperience } = req.body;
 
         // Check if email already exists
         const emailQuery = `
@@ -40,6 +48,7 @@ router.post("/pre-signup", async (req, res) => {
             birthdate,  
             gender,
             mobilenumber,
+            yearsOfExperience,
             verificationCode,
             codeExpiry
         };
@@ -78,7 +87,7 @@ router.post("/pre-signup", async (req, res) => {
 // Complete Signup with Verification Code
 router.post("/complete-signup", async (req, res) => {
     try {
-        const { email, verificationCode } = req.body;
+        const { email, verificationCode, years_experience = 0 } = req.body;
 
         // Retrieve stored registration data
         const tempRegData = verificationCodes.get(email);
@@ -109,9 +118,9 @@ router.post("/complete-signup", async (req, res) => {
         DECLARE @newUserId INT = SCOPE_IDENTITY();
         
         INSERT INTO user_profiles (
-            user_id, firstname, lastname, birthdate, gender, email, mobile_number
+            user_id, firstname, lastname, birthdate, gender, email, mobile_number, years_experience
         ) VALUES (
-            @newUserId, @param3, @param4, @param5, @param6, @param7, @param8
+            @newUserId, @param3, @param4, @param5, @param6, @param7, @param8, @param9
         );
         
         COMMIT TRANSACTION;
@@ -128,7 +137,8 @@ router.post("/complete-signup", async (req, res) => {
         { type: TYPES.Date, value: new Date(tempRegData.birthdate) },
         { type: TYPES.NVarChar, value: tempRegData.gender },
         { type: TYPES.NVarChar, value: email },
-        { type: TYPES.NVarChar, value: tempRegData.mobilenumber }
+        { type: TYPES.NVarChar, value: tempRegData.mobilenumber },
+        { type: TYPES.Int, value: years_experience }
     ];
 
         const userResult = await database.executeQuery(registrationQuery, registrationParams);

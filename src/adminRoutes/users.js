@@ -13,6 +13,7 @@ router.get('/fetch-user', async (req, res) => {
         up.lastname,
         up.gender,
         up.birthdate,
+        up.years_experience,
         up.mobile_number,
         up.email,
         up.profile_image,
@@ -29,10 +30,11 @@ router.get('/fetch-user', async (req, res) => {
       lastname: row[2].value || '',
       gender: row[3].value || '',
       birthdate: row[4].value,
-      mobile_number: row[5].value || '',
-      email: row[6].value || '',
-      profile_image: row[7].value || null,
-      created_at: row[8].value
+      years_experience: row[5].value || 0,
+      mobile_number: row[6].value || '',
+      email: row[7].value || '',
+      profile_image: row[8].value || null,
+      created_at: row[9].value
     }));
 
     res.status(200).json({
