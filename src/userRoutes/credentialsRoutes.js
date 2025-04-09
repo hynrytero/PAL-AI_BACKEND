@@ -4,7 +4,7 @@ const router = express.Router();
 const database = require('../db/connection');
 const bcrypt = require('bcrypt');
 const { TYPES } = require('tedious');
-const {transporter, otpStorage} = require('../services');
+const { transporter, otpStorage } = require('../services');
 const { generateVerificationCode } = require('../utils');
 
 // Change Password
@@ -26,7 +26,7 @@ router.post('/change-password', async (req, res) => {
         `;
 
         const verifyParams = [
-            { type: TYPES.Int, value: parseInt(user_id, 10) }  
+            { type: TYPES.Int, value: parseInt(user_id, 10) }
         ];
 
         const results = await database.executeQuery(verifyQuery, verifyParams);
@@ -39,7 +39,7 @@ router.post('/change-password', async (req, res) => {
         }
 
         const storedHash = results[0][0].value;
-        
+
         if (!storedHash) {
             return res.status(400).json({
                 success: false,
@@ -108,13 +108,13 @@ router.post('/verify-email-change', async (req, res) => {
             FROM user_profiles 
             WHERE email = @param0 
         `;
-        
+
         const emailCheckParams = [
             { type: TYPES.VarChar, value: newEmail.trim() }
         ];
 
         const emailResults = await database.executeQuery(emailCheckQuery, emailCheckParams);
-        
+
         if (emailResults && emailResults.length > 0) {
             return res.status(400).json({
                 success: false,
@@ -300,7 +300,7 @@ router.post('/delete-account', async (req, res) => {
         }
 
         const storedHash = results[0][0].value;
-        
+
         if (!storedHash) {
             return res.status(400).json({
                 success: false,
@@ -319,24 +319,45 @@ router.post('/delete-account', async (req, res) => {
 
         // Execute the deletion transaction
         const deleteQuery = `
-            BEGIN TRANSACTION;
-            -- First, delete from scan_history which depends on rice_leaf_scan
-            DELETE FROM dbo.scan_history
-            WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @param0);
-            -- Then delete from rice_leaf_scan which depends on user_credentials
-            DELETE FROM dbo.rice_leaf_scan
-            WHERE user_id = @param0;
-            -- Delete from user_notifications which depends on user_credentials
-            DELETE FROM dbo.user_notifications
-            WHERE user_id = @param0;
-            -- Delete from user_profiles which depends on user_credentials and user_address
-            DELETE FROM dbo.user_profiles 
-            WHERE user_id = @param0;
-            -- Finally delete from user_credentials
-            DELETE FROM dbo.user_credentials 
-            WHERE user_id = @param0;
-            COMMIT TRANSACTION;
-        `;
+      BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- First, delete from scan_history which depends on rice_leaf_scan
+        DELETE FROM dbo.scan_history
+        WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @param0);
+        
+        -- Then delete from rice_leaf_scan which depends on user_credentials
+        DELETE FROM dbo.rice_leaf_scan
+        WHERE user_id = @param0;
+        
+        -- Delete from user_notifications which depends on user_credentials
+        DELETE FROM dbo.user_notifications
+        WHERE user_id = @param0;
+
+        -- Get the address_id before deleting user_profiles
+        DECLARE @addressId INT;
+        SELECT @addressId = address_id FROM dbo.user_profiles WHERE user_id = @param0;
+        
+        -- Delete from user_profiles which depends on user_credentials
+        DELETE FROM dbo.user_profiles 
+        WHERE user_id = @param0;
+        
+        -- Delete the address associated with the user
+        DELETE FROM dbo.user_address
+        WHERE address_id = @addressId;
+        
+        -- Finally delete from user_credentials
+        DELETE FROM dbo.user_credentials 
+        WHERE user_id = @param0;
+        
+        COMMIT TRANSACTION;
+      END TRY
+      BEGIN CATCH
+        IF @@TRANCOUNT > 0
+          ROLLBACK TRANSACTION;
+        THROW;
+      END CATCH
+    `;
 
         const deleteParams = [
             { type: TYPES.Int, value: parseInt(user_id, 10) }
