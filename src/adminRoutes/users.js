@@ -17,8 +17,13 @@ router.get('/fetch-user', async (req, res) => {
         up.mobile_number,
         up.email,
         up.profile_image,
-        up.created_at
+        up.created_at,
+        ua.region,
+        ua.province,
+        ua.city,
+        ua.barangay
       FROM user_profiles up
+      LEFT JOIN user_address ua ON up.address_id = ua.address_id
       ORDER BY up.created_at DESC
     `;
 
@@ -34,7 +39,11 @@ router.get('/fetch-user', async (req, res) => {
       mobile_number: row[6].value || '',
       email: row[7].value || '',
       profile_image: row[8].value || null,
-      created_at: row[9].value
+      created_at: row[9].value,
+      region: row[10].value || '',
+      province: row[11].value || '',
+      city: row[12].value || '',
+      barangay: row[13].value || ''
     }));
 
     res.status(200).json({
