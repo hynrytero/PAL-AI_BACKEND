@@ -194,9 +194,6 @@ router.put('/update', async (req, res) => {
             WHERE user_id = @param0;
         `;
 
-        console.log('Profile Update Query:', updateProfileQuery);
-        console.log('Profile Params:', profileParams);
-
         // Construct update query for user_address
         let updateAddressFields = [];
         let addressParams = [
@@ -205,39 +202,40 @@ router.put('/update', async (req, res) => {
         let addressParamIndex = 1;
 
         if (region) {
-            updateAddressFields.push(`region = @param${profileParams.length + addressParamIndex - 1}`);
+            updateAddressFields.push(`region = @param${addressParamIndex}`);
             addressParams.push({ type: TYPES.NVarChar, value: region });
             addressParamIndex++;
         }
 
         if (province) {
-            updateAddressFields.push(`province = @param${profileParams.length + addressParamIndex - 1}`);
+            updateAddressFields.push(`province = @param${addressParamIndex}`);
             addressParams.push({ type: TYPES.NVarChar, value: province });
             addressParamIndex++;
         }
 
         if (city) {
-            updateAddressFields.push(`city = @param${profileParams.length + addressParamIndex - 1}`);
+            updateAddressFields.push(`city = @param${addressParamIndex}`);
             addressParams.push({ type: TYPES.NVarChar, value: city });
             addressParamIndex++;
         }
 
         if (barangay) {
-            updateAddressFields.push(`barangay = @param${profileParams.length + addressParamIndex - 1}`);
+            updateAddressFields.push(`barangay = @param${addressParamIndex}`);
             addressParams.push({ type: TYPES.NVarChar, value: barangay });
             addressParamIndex++;
         }
 
-        const updateAddressQuery = `
-            UPDATE user_address 
-            SET ${updateAddressFields.join(', ')}
-            WHERE address_id = @param0;
-        `;
+        // Only update address if there are fields to update
+        let updateAddressQuery = '';
+        if (updateAddressFields.length > 0) {
+            updateAddressQuery = `
+                UPDATE user_address 
+                SET ${updateAddressFields.join(', ')}
+                WHERE address_id = @param0;
+            `;
+        }
 
-        console.log('Address Update Query:', updateAddressQuery);
-        console.log('Address Params:', addressParams);
-
-        // Execute both queries in a transaction
+        // Execute queries in a transaction
         const transactionQuery = `
             BEGIN TRY
                 BEGIN TRANSACTION;
