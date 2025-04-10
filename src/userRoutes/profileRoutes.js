@@ -235,6 +235,12 @@ router.put('/update', async (req, res) => {
             `;
         }
 
+        // Log queries and parameters
+        console.log('Profile Update Query:', updateProfileQuery);
+        console.log('Profile Params:', profileParams);
+        console.log('Address Update Query:', updateAddressQuery);
+        console.log('Address Params:', addressParams);
+
         // Execute queries in a transaction
         const transactionQuery = `
             BEGIN TRY
