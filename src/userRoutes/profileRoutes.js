@@ -109,7 +109,7 @@ router.post('/upload-profile', multer().single('image'), async (req, res) => {
 // Update Profile
 router.put('/update', async (req, res) => {
     try {
-        const { userId, firstname, lastname, birthdate, contactNumber, image, addressId, yearsExperience } = req.body;
+        const { userId, firstname, lastname, birthdate, contactNumber, image, addressId, yearsExperience, region, province, city, barangay } = req.body;
 
         // Validate required fields
         if (!userId) {
@@ -119,69 +119,108 @@ router.put('/update', async (req, res) => {
             });
         }
 
-        // Construct update query with only provided fields
-        let updateFields = [];
-        let params = [
+        // Construct update query for user_profiles
+        let updateProfileFields = [];
+        let profileParams = [
             { type: TYPES.Int, value: parseInt(userId, 10) }
         ];
         let paramIndex = 1;
 
         if (firstname) {
-            updateFields.push(`firstname = @param${paramIndex}`);
-            params.push({ type: TYPES.NVarChar, value: firstname });
+            updateProfileFields.push(`firstname = @param${paramIndex}`);
+            profileParams.push({ type: TYPES.NVarChar, value: firstname });
             paramIndex++;
         }
 
         if (lastname) {
-            updateFields.push(`lastname = @param${paramIndex}`);
-            params.push({ type: TYPES.NVarChar, value: lastname });
+            updateProfileFields.push(`lastname = @param${paramIndex}`);
+            profileParams.push({ type: TYPES.NVarChar, value: lastname });
             paramIndex++;
         }
 
         if (birthdate) {
-            updateFields.push(`birthdate = @param${paramIndex}`);
-            params.push({ type: TYPES.Date, value: new Date(birthdate) });
+            updateProfileFields.push(`birthdate = @param${paramIndex}`);
+            profileParams.push({ type: TYPES.Date, value: new Date(birthdate) });
             paramIndex++;
         }
 
         if (contactNumber) {
-            updateFields.push(`mobile_number = @param${paramIndex}`);
-            params.push({ type: TYPES.NVarChar, value: contactNumber });
+            updateProfileFields.push(`mobile_number = @param${paramIndex}`);
+            profileParams.push({ type: TYPES.NVarChar, value: contactNumber });
             paramIndex++;
         }
 
         if (image) {
-            updateFields.push(`profile_image = @param${paramIndex}`);
-            params.push({ type: TYPES.NVarChar, value: image });
+            updateProfileFields.push(`profile_image = @param${paramIndex}`);
+            profileParams.push({ type: TYPES.NVarChar, value: image });
             paramIndex++;
         }
 
         if (addressId) {
-            updateFields.push(`address_id = @param${paramIndex}`);
-            params.push({ type: TYPES.Int, value: parseInt(addressId, 10) });
+            updateProfileFields.push(`address_id = @param${paramIndex}`);
+            profileParams.push({ type: TYPES.Int, value: parseInt(addressId, 10) });
             paramIndex++;
         }
 
         if (yearsExperience) {
-            updateFields.push(`years_experience = @param${paramIndex}`);
-            params.push({ type: TYPES.Int, value: parseInt(yearsExperience, 10) });
+            updateProfileFields.push(`years_experience = @param${paramIndex}`);
+            profileParams.push({ type: TYPES.Int, value: parseInt(yearsExperience, 10) });
             paramIndex++;
         }
 
-        updateFields.push(`updated_at = GETDATE()`);
+        updateProfileFields.push(`updated_at = GETDATE()`);
 
-        const updateQuery = `
+        const updateProfileQuery = `
             UPDATE user_profiles 
-            SET ${updateFields.join(', ')}
+            SET ${updateProfileFields.join(', ')}
             WHERE user_id = @param0;
-            
-            SELECT @@ROWCOUNT as affected;
         `;
 
-        const result = await database.executeQuery(updateQuery, params);
-        const rowsAffected = result[0][0].value;
+        // Construct update query for user_address
+        let updateAddressFields = [];
+        let addressParams = [
+            { type: TYPES.Int, value: parseInt(addressId, 10) }
+        ];
+        let addressParamIndex = 1;
 
-        if (rowsAffected > 0) {
+        if (region) {
+            updateAddressFields.push(`region = @param${addressParamIndex}`);
+            addressParams.push({ type: TYPES.NVarChar, value: region });
+            addressParamIndex++;
+        }
+
+        if (province) {
+            updateAddressFields.push(`province = @param${addressParamIndex}`);
+            addressParams.push({ type: TYPES.NVarChar, value: province });
+            addressParamIndex++;
+        }
+
+        if (city) {
+            updateAddressFields.push(`city = @param${addressParamIndex}`);
+            addressParams.push({ type: TYPES.NVarChar, value: city });
+            addressParamIndex++;
+        }
+
+        if (barangay) {
+            updateAddressFields.push(`barangay = @param${addressParamIndex}`);
+            addressParams.push({ type: TYPES.NVarChar, value: barangay });
+            addressParamIndex++;
+        }
+
+        const updateAddressQuery = `
+            UPDATE user_address 
+            SET ${updateAddressFields.join(', ')}
+            WHERE address_id = @param0;
+        `;
+
+        // Execute both queries
+        const profileResult = await database.executeQuery(updateProfileQuery, profileParams);
+        const addressResult = await database.executeQuery(updateAddressQuery, addressParams);
+
+        const profileRowsAffected = profileResult[0][0].value;
+        const addressRowsAffected = addressResult[0][0].value;
+
+        if (profileRowsAffected > 0 || addressRowsAffected > 0) {
             res.json({
                 success: true,
                 message: 'Profile updated successfully'
