@@ -119,24 +119,6 @@ router.put('/update', async (req, res) => {
             });
         }
 
-        // First verify the user exists
-        const verifyUserQuery = `
-            SELECT up.user_id, up.address_id 
-            FROM user_profiles up 
-            WHERE up.user_id = @param0
-        `;
-        const verifyParams = [{ type: TYPES.Int, value: parseInt(userId, 10) }];
-        const verifyResults = await database.executeQuery(verifyUserQuery, verifyParams);
-
-        if (!verifyResults || verifyResults.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'User profile not found'
-            });
-        }
-
-        const userAddressId = verifyResults[0][1].value;
-
         // Construct update query for user_profiles
         let updateProfileFields = [];
         let profileParams = [
@@ -197,7 +179,7 @@ router.put('/update', async (req, res) => {
         // Construct update query for user_address
         let updateAddressFields = [];
         let addressParams = [
-            { type: TYPES.Int, value: userAddressId }
+            { type: TYPES.Int, value: parseInt(addressId, 10) }
         ];
         let addressParamIndex = 1;
 
@@ -234,12 +216,6 @@ router.put('/update', async (req, res) => {
                 WHERE address_id = @param0;
             `;
         }
-
-        // Log queries and parameters
-        console.log('Profile Update Query:', updateProfileQuery);
-        console.log('Profile Params:', profileParams);
-        console.log('Address Update Query:', updateAddressQuery);
-        console.log('Address Params:', addressParams);
 
         // error handling
         let profileUpdateSuccess = true;
