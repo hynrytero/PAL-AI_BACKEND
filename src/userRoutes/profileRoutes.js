@@ -255,7 +255,18 @@ router.put('/update', async (req, res) => {
             END CATCH
         `;
 
-        const allParams = [...profileParams, ...addressParams];
+        // Combine parameters, adjusting the indices for the address query
+        const allParams = [...profileParams];
+        const addressParamsAdjusted = addressParams.map((param, index) => {
+            if (index === 0) return param; // Keep the first param (address_id) as is
+            return {
+                ...param,
+                name: `@param${profileParams.length + index - 1}` // Adjust the parameter index
+            };
+        });
+        allParams.push(...addressParamsAdjusted);
+
+        // Execute the transaction
         await database.executeQuery(transactionQuery, allParams);
 
         res.json({
