@@ -217,8 +217,8 @@ router.put('/update', async (req, res) => {
         const profileResult = await database.executeQuery(updateProfileQuery, profileParams);
         const addressResult = await database.executeQuery(updateAddressQuery, addressParams);
 
-        const profileRowsAffected = profileResult[0][0].value;
-        const addressRowsAffected = addressResult[0][0].value;
+        const profileRowsAffected = profileResult.length > 0 ? profileResult[0][0].value : 0;
+        const addressRowsAffected = addressResult.length > 0 ? addressResult[0][0].value : 0;
 
         if (profileRowsAffected > 0 || addressRowsAffected > 0) {
             res.json({
