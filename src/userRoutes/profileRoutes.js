@@ -205,25 +205,25 @@ router.put('/update', async (req, res) => {
         let addressParamIndex = 1;
 
         if (region) {
-            updateAddressFields.push(`region = @param${addressParamIndex}`);
+            updateAddressFields.push(`region = @param${profileParams.length + addressParamIndex - 1}`);
             addressParams.push({ type: TYPES.NVarChar, value: region });
             addressParamIndex++;
         }
 
         if (province) {
-            updateAddressFields.push(`province = @param${addressParamIndex}`);
+            updateAddressFields.push(`province = @param${profileParams.length + addressParamIndex - 1}`);
             addressParams.push({ type: TYPES.NVarChar, value: province });
             addressParamIndex++;
         }
 
         if (city) {
-            updateAddressFields.push(`city = @param${addressParamIndex}`);
+            updateAddressFields.push(`city = @param${profileParams.length + addressParamIndex - 1}`);
             addressParams.push({ type: TYPES.NVarChar, value: city });
             addressParamIndex++;
         }
 
         if (barangay) {
-            updateAddressFields.push(`barangay = @param${addressParamIndex}`);
+            updateAddressFields.push(`barangay = @param${profileParams.length + addressParamIndex - 1}`);
             addressParams.push({ type: TYPES.NVarChar, value: barangay });
             addressParamIndex++;
         }
@@ -255,16 +255,8 @@ router.put('/update', async (req, res) => {
             END CATCH
         `;
 
-        // Combine parameters, adjusting the indices for the address query
-        const allParams = [...profileParams];
-        const addressParamsAdjusted = addressParams.map((param, index) => {
-            if (index === 0) return param; // Keep the first param (address_id) as is
-            return {
-                ...param,
-                name: `@param${profileParams.length + index - 1}` // Adjust the parameter index
-            };
-        });
-        allParams.push(...addressParamsAdjusted);
+        // Combine parameters
+        const allParams = [...profileParams, ...addressParams];
 
         // Execute the transaction
         await database.executeQuery(transactionQuery, allParams);
