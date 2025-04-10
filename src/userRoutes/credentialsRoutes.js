@@ -319,45 +319,45 @@ router.post('/delete-account', async (req, res) => {
 
         // Execute the deletion transaction
         const deleteQuery = `
-      BEGIN TRY
-        BEGIN TRANSACTION;
-        
-        -- First, delete from scan_history which depends on rice_leaf_scan
-        DELETE FROM dbo.scan_history
-        WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @param0);
-        
-        -- Then delete from rice_leaf_scan which depends on user_credentials
-        DELETE FROM dbo.rice_leaf_scan
-        WHERE user_id = @param0;
-        
-        -- Delete from user_notifications which depends on user_credentials
-        DELETE FROM dbo.user_notifications
-        WHERE user_id = @param0;
+            BEGIN TRY
+                BEGIN TRANSACTION;
+                
+                -- First, delete from scan_history which depends on rice_leaf_scan
+                DELETE FROM dbo.scan_history
+                WHERE rice_leaf_scan_id IN (SELECT rice_leaf_scan_id FROM dbo.rice_leaf_scan WHERE user_id = @param0);
+                
+                -- Then delete from rice_leaf_scan which depends on user_credentials
+                DELETE FROM dbo.rice_leaf_scan
+                WHERE user_id = @param0;
+                
+                -- Delete from user_notifications which depends on user_credentials
+                DELETE FROM dbo.user_notifications
+                WHERE user_id = @param0;
 
-        -- Get the address_id before deleting user_profiles
-        DECLARE @addressId INT;
-        SELECT @addressId = address_id FROM dbo.user_profiles WHERE user_id = @param0;
-        
-        -- Delete from user_profiles which depends on user_credentials
-        DELETE FROM dbo.user_profiles 
-        WHERE user_id = @param0;
-        
-        -- Delete the address associated with the user
-        DELETE FROM dbo.user_address
-        WHERE address_id = @addressId;
-        
-        -- Finally delete from user_credentials
-        DELETE FROM dbo.user_credentials 
-        WHERE user_id = @param0;
-        
-        COMMIT TRANSACTION;
-      END TRY
-      BEGIN CATCH
-        IF @@TRANCOUNT > 0
-          ROLLBACK TRANSACTION;
-        THROW;
-      END CATCH
-    `;
+                -- Get the address_id before deleting user_profiles
+                DECLARE @addressId INT;
+                SELECT @addressId = address_id FROM dbo.user_profiles WHERE user_id = @param0;
+                
+                -- Delete from user_profiles which depends on user_credentials
+                DELETE FROM dbo.user_profiles 
+                WHERE user_id = @param0;
+                
+                -- Delete the address associated with the user
+                DELETE FROM dbo.user_address
+                WHERE address_id = @addressId;
+                
+                -- Finally delete from user_credentials
+                DELETE FROM dbo.user_credentials 
+                WHERE user_id = @param0;
+                
+                COMMIT TRANSACTION;
+            END TRY
+            BEGIN CATCH
+                IF @@TRANCOUNT > 0
+                ROLLBACK TRANSACTION;
+                THROW;
+            END CATCH
+        `;
 
         const deleteParams = [
             { type: TYPES.Int, value: parseInt(user_id, 10) }
