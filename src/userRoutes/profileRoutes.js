@@ -176,6 +176,9 @@ router.put('/update', async (req, res) => {
             WHERE user_id = @param0;
         `;
 
+        console.log('Profile Update Query:', updateProfileQuery);
+        console.log('Profile Params:', profileParams);
+
         // Construct update query for user_address
         let updateAddressFields = [];
         let addressParams = [
@@ -213,9 +216,15 @@ router.put('/update', async (req, res) => {
             WHERE address_id = @param0;
         `;
 
+        console.log('Address Update Query:', updateAddressQuery);
+        console.log('Address Params:', addressParams);
+
         // Execute both queries
         const profileResult = await database.executeQuery(updateProfileQuery, profileParams);
         const addressResult = await database.executeQuery(updateAddressQuery, addressParams);
+
+        console.log('Profile Result:', profileResult);
+        console.log('Address Result:', addressResult);
 
         const profileRowsAffected = profileResult.length > 0 ? profileResult[0][0].value : 0;
         const addressRowsAffected = addressResult.length > 0 ? addressResult[0][0].value : 0;
