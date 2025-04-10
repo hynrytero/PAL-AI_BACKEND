@@ -241,29 +241,41 @@ router.put('/update', async (req, res) => {
         console.log('Address Update Query:', updateAddressQuery);
         console.log('Address Params:', addressParams);
 
-        // Execute queries in a transaction
-        const transactionQuery = `
-            BEGIN TRY
-                BEGIN TRANSACTION;
-                
-                ${updateProfileQuery}
-                
-                ${updateAddressQuery}
-                
-                COMMIT TRANSACTION;
-            END TRY
-            BEGIN CATCH
-                IF @@TRANCOUNT > 0
-                    ROLLBACK TRANSACTION;
-                THROW;
-            END CATCH
-        `;
+        // error handling
+        let profileUpdateSuccess = true;
+        let addressUpdateSuccess = true;
+        let errorDetails = {};
 
-        // Combine parameters
-        const allParams = [...profileParams, ...addressParams];
+        if (updateProfileFields.length > 0) {
+            try {
+                await database.executeQuery(updateProfileQuery, profileParams);
+            } catch (error) {
+                profileUpdateSuccess = false;
+                errorDetails.profile = error.message;
+                console.error('Profile update failed:', error);
+            }
+        }
 
-        // Execute the transaction
-        await database.executeQuery(transactionQuery, allParams);
+        if (updateAddressFields.length > 0) {
+            try {
+                await database.executeQuery(updateAddressQuery, addressParams);
+            } catch (error) {
+                addressUpdateSuccess = false;
+                errorDetails.address = error.message;
+                console.error('Address update failed:', error);
+            }
+        }
+
+        // Check if any updates failed
+        if (!profileUpdateSuccess || !addressUpdateSuccess) {
+            return res.status(500).json({
+                success: false,
+                message: 'Partial update failure',
+                errorDetails: errorDetails,
+                profileUpdated: profileUpdateSuccess,
+                addressUpdated: addressUpdateSuccess
+            });
+        }
 
         res.json({
             success: true,
