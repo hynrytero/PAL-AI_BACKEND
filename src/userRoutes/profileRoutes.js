@@ -119,6 +119,24 @@ router.put('/update', async (req, res) => {
             });
         }
 
+        // First verify the user exists
+        const verifyUserQuery = `
+            SELECT up.user_id, up.address_id 
+            FROM user_profiles up 
+            WHERE up.user_id = @param0
+        `;
+        const verifyParams = [{ type: TYPES.Int, value: parseInt(userId, 10) }];
+        const verifyResults = await database.executeQuery(verifyUserQuery, verifyParams);
+
+        if (!verifyResults || verifyResults.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'User profile not found'
+            });
+        }
+
+        const userAddressId = verifyResults[0][1].value;
+
         // Construct update query for user_profiles
         let updateProfileFields = [];
         let profileParams = [
@@ -182,7 +200,7 @@ router.put('/update', async (req, res) => {
         // Construct update query for user_address
         let updateAddressFields = [];
         let addressParams = [
-            { type: TYPES.Int, value: parseInt(addressId, 10) }
+            { type: TYPES.Int, value: userAddressId }
         ];
         let addressParamIndex = 1;
 
@@ -219,27 +237,31 @@ router.put('/update', async (req, res) => {
         console.log('Address Update Query:', updateAddressQuery);
         console.log('Address Params:', addressParams);
 
-        // Execute both queries
-        const profileResult = await database.executeQuery(updateProfileQuery, profileParams);
-        const addressResult = await database.executeQuery(updateAddressQuery, addressParams);
+        // Execute both queries in a transaction
+        const transactionQuery = `
+            BEGIN TRY
+                BEGIN TRANSACTION;
+                
+                ${updateProfileQuery}
+                
+                ${updateAddressQuery}
+                
+                COMMIT TRANSACTION;
+            END TRY
+            BEGIN CATCH
+                IF @@TRANCOUNT > 0
+                    ROLLBACK TRANSACTION;
+                THROW;
+            END CATCH
+        `;
 
-        console.log('Profile Result:', profileResult);
-        console.log('Address Result:', addressResult);
+        const allParams = [...profileParams, ...addressParams];
+        await database.executeQuery(transactionQuery, allParams);
 
-        const profileRowsAffected = profileResult.length > 0 ? profileResult[0][0].value : 0;
-        const addressRowsAffected = addressResult.length > 0 ? addressResult[0][0].value : 0;
-
-        if (profileRowsAffected > 0 || addressRowsAffected > 0) {
-            res.json({
-                success: true,
-                message: 'Profile updated successfully'
-            });
-        } else {
-            res.status(404).json({
-                success: false,
-                message: 'User profile not found'
-            });
-        }
+        res.json({
+            success: true,
+            message: 'Profile updated successfully'
+        });
     } catch (error) {
         console.error('Profile update error:', error);
         res.status(500).json({
