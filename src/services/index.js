@@ -1,5 +1,5 @@
 // services/index.js
-const { bucketScan, bucketProfile, bucketMedicine } = require('./storage');
+const { bucketScan, bucketProfile, bucketMedicine,bucketNotification } = require('./storage');
 const { transporter} = require('./email');
 const { verificationCodes, passwordResetCodes, otpStorage } = require('./verification');
 
@@ -7,6 +7,7 @@ module.exports = {
     bucketScan,
     bucketProfile,
     bucketMedicine,
+    bucketNotification,
     transporter,
     verificationCodes,
     passwordResetCodes,
