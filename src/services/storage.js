@@ -9,9 +9,11 @@ const storage = new Storage({
 const bucketScan = storage.bucket(config.storage.bucketScan);
 const bucketProfile = storage.bucket(config.storage.bucketProfile);
 const bucketMedicine = storage.bucket(config.storage.bucketMedicine);
+const bucketNotification = storage.bucket(config.storage.bucketNotification);
 
 module.exports = {
     bucketScan,
     bucketProfile,
     bucketMedicine,
+    bucketNotification,
 };

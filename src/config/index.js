@@ -16,7 +16,8 @@ module.exports = {
     projectId: process.env.GOOGLE_CLOUD_PROJECT,
     bucketScan: process.env.BUCKET_NAME_SCAN,
     bucketProfile: process.env.BUCKET_NAME_PROFILE,
-    bucketMedicine: process.env.BUCKET_NAME_MEDICINE
+    bucketMedicine: process.env.BUCKET_NAME_MEDICINE,
+    bucketNotification: process.env.BUCKET_NAME_NOTIFICATION
   },
   email: {
     service: process.env.EMAIL_SERVICE,

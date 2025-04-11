@@ -1,7 +1,10 @@
 // src/adminRoutes/notifications.js
 const express = require('express');
 const router = express.Router();
-const database = require('../db/connection'); 
+const multer = require('multer');
+const database = require('../db/connection');
+const { TYPES } = require('tedious');
+const { bucketNotification } = require('../services');
 
 router.get('/fetch-user', async (req, res) => {
   try {
@@ -47,6 +50,30 @@ router.get('/fetch-user', async (req, res) => {
       message: 'Server error while fetching user data',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  }
+});
+
+// Upload notification image 
+router.post('/upload', multer().single('image'), async (req, res) => {
+  try {
+      const file = req.file;
+      const fileName = `${Date.now()}-${file.originalname}`;
+      
+      const blob = bucketNotification.file(fileName);
+      const blobStream = blob.createWriteStream();
+
+      blobStream.on('finish', async () => {
+          const publicUrl = `https://storage.googleapis.com/${bucketNotification.name}/${fileName}`;
+          res.status(200).json({ imageUrl: publicUrl });
+      });
+
+      blobStream.on('error', (err) => {
+          res.status(500).json({ error: 'Upload failed', details: err.message });
+      });
+
+      blobStream.end(file.buffer);
+  } catch (error) {
+      res.status(500).json({ error: 'Upload failed', details: error.message });
   }
 });
 
