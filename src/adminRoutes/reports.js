@@ -26,13 +26,14 @@ router.get('/rice-leaf-scans', async (req, res) => {
       LEFT JOIN local_practice_treatment lpt ON rld.rice_leaf_disease_id = lpt.rice_leaf_disease_id
       LEFT JOIN rice_plant_medicine rpm ON rld.rice_leaf_disease_id = rpm.rice_leaf_disease_id
       LEFT JOIN user_profiles up ON rls.user_id = up.user_id
-      WHERE rls.rice_leaf_disease_id != @param0
+      WHERE rls.rice_leaf_disease_id != @param0 AND rls.rice_leaf_disease_id != @param1
       ORDER BY rls.created_at DESC
     `;
     
     // Parameters using your custom format
     const params = [
-      { type: TYPES.Int, value: 3 }
+      { type: TYPES.Int, value: 3 },
+      { type: TYPES.Int, value: 4 }
     ];
     
     // Execute query using your connection pool
