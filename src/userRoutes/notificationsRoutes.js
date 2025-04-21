@@ -341,12 +341,13 @@ router.delete('/delete-all/:userId/clear', async (req, res) => {
 router.get('/fetch-admin', async (req, res) => {
   try {
     const query = `
-      SELECT user_id as userId, push_token as pushToken
-      FROM user_credentials
+      SELECT user_id as userId, push_token as pushToken       
+      FROM user_credentials  
     `;
-    
+
     const results = await database.executeQuery(query);
-    
+    console.log("Raw results:", results);
+
     const adminUsers = results.map(row => {
       return {
         userId: row.userId || null,
