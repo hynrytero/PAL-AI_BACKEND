@@ -133,4 +133,50 @@ router.post('/pushToken', async (req, res) => {
     }
 });
 
+// Clear Push Token Endpoint
+router.delete('/pushToken/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  
+  if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+  }
+  
+  try {
+      // First check if user exists
+      const checkQuery = `
+          SELECT user_id
+          FROM user_credentials 
+          WHERE user_id = @param0
+      `;
+      
+      const checkParams = [
+          { type: TYPES.Int, value: userId }
+      ];
+      
+      const results = await database.executeQuery(checkQuery, checkParams);
+      
+      if (results.length === 0) {
+          return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Update query to set push_token to NULL
+      const updateQuery = `
+          UPDATE user_credentials 
+          SET push_token = NULL
+          WHERE user_id = @param0
+      `;
+      
+      const updateParams = [
+          { type: TYPES.Int, value: userId }
+      ];
+      
+      await database.executeQuery(updateQuery, updateParams);
+      
+      res.status(200).json({ message: 'Push token cleared successfully' });
+  } catch (error) {
+      console.error('Error clearing push token:', error);
+      res.status(500).json({ error: 'Failed to clear push token' });
+  }
+});
+
 module.exports = router;
