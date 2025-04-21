@@ -341,20 +341,30 @@ router.delete('/delete-all/:userId/clear', async (req, res) => {
 router.get('/fetch-admin', async (req, res) => {
   try {
     const query = `
-      SELECT user_id as userId, push_token as pushToken       
-      FROM user_credentials  
+      SELECT user_id as userId, push_token as pushToken
+      FROM user_credentials
+      WHERE role_id = @param0
     `;
 
-    const results = await database.executeQuery(query);
-    console.log("Raw results:", results);
+    const params = [{ type: TYPES.Int, value: 0 }]; 
 
-    const adminUsers = results.map(row => {
+    const results = await database.executeQuery(query, params);
+    
+    console.log("Raw results:", results); 
+
+    // Map the results correctly
+    const adminUsers = results.map(rowColumns => {
+      const row = {};
+      rowColumns.forEach(column => {
+        row[column.metadata.colName] = column.value; // Extract the actual value
+      });
+
       return {
         userId: row.userId || null,
         pushToken: row.pushToken || null
       };
     });
-    
+
     res.status(200).json(adminUsers);
   } catch (error) {
     console.error('Error fetching admin users:', error);
