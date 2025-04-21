@@ -343,28 +343,17 @@ router.get('/fetch-admin', async (req, res) => {
     const query = `
       SELECT user_id as userId, push_token as pushToken
       FROM user_credentials
-      WHERE role_id = @param0
     `;
-
-    const params = [{ type: TYPES.Int, value: 0 }]; // Assuming 0 is your admin role ID
-
-    const results = await database.executeQuery(query, params);
     
-    console.log("Raw results:", results); // Debugging
-
-    // Map the results correctly
-    const adminUsers = results.map(rowColumns => {
-      const row = {};
-      rowColumns.forEach(column => {
-        row[column.metadata.colName] = column.value; // Extract the actual value
-      });
-
+    const results = await database.executeQuery(query);
+    
+    const adminUsers = results.map(row => {
       return {
         userId: row.userId || null,
         pushToken: row.pushToken || null
       };
     });
-
+    
     res.status(200).json(adminUsers);
   } catch (error) {
     console.error('Error fetching admin users:', error);
