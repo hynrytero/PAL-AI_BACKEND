@@ -50,6 +50,12 @@ router.post("/pre-signup", async (req, res) => {
         };
         verificationCodes.set(email, tempRegData);
 
+        // Debug logging for tempRegData (without sensitive info)
+        console.log('Temp registration data for debugging:', {
+            ...tempRegData,
+            password: '[REDACTED]' // Don't log the actual password
+        });
+
         // Send verification code via email
         const mailOptions = {
             from: process.env.EMAIL_USER,
