@@ -43,7 +43,7 @@ router.get('/rice-leaf-scans', async (req, res) => {
     const formattedResults = results.map(row => ({
       rice_leaf_scan_id: row[0].value,
       scan_image: row[1].value,
-      disease_confidence_score: row[2].value,
+      disease_confidence_score: (row[2].value * 100).toFixed(2),
       created_at: row[3].value,
       rice_leaf_disease: row[4].value,
       disease_description: row[5].value || 'No disease description available',
