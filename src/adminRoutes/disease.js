@@ -206,7 +206,7 @@ router.put('/edit/:medicineId', upload.single('image'), async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!medicineId && (!rice_leaf_disease_id && !rice_plant_medicine && !description && !req.file)) {
+    if (!medicineId || (!rice_leaf_disease_id && !rice_plant_medicine && !description && !req.file)) {
       return res.status(400).json({
         success: false,
         message: 'Medicine ID and at least one update field are required'
@@ -236,17 +236,24 @@ router.put('/edit/:medicineId', upload.single('image'), async (req, res) => {
       paramCounter++;
     }
 
-    // Handle image update
     if (req.file) {
-      updateFields.push(`image = @param${paramCounter}`);
-      params.push({ 
-        type: TYPES.VarBinary, 
-        value: req.file.buffer 
-      });
-      paramCounter++;
+      try {
+        const imagePath = await uploadToGCS(req.file);
+        updateFields.push(`image = @param${paramCounter}`);
+        params.push({ 
+          type: TYPES.NVarChar, 
+          value: imagePath 
+        });
+        paramCounter++;
+      } catch (uploadError) {
+        console.error('Image upload error:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload image'
+        });
+      }
     }
 
-    // Add medicine ID as the last parameter
     params.push({ type: TYPES.Int, value: medicineId });
 
     const query = `
@@ -259,7 +266,7 @@ router.put('/edit/:medicineId', upload.single('image'), async (req, res) => {
         rice_leaf_disease_id, 
         rice_plant_medicine, 
         description,
-        CASE WHEN image IS NOT NULL THEN 'Image uploaded' ELSE NULL END as image_status
+        image  
       FROM rice_plant_medicine
       WHERE medicine_id = @param${paramCounter};
     `;
@@ -274,13 +281,12 @@ router.put('/edit/:medicineId', upload.single('image'), async (req, res) => {
       });
     }
 
-    // Return the updated medicine details
     const updatedMedicine = {
       medicine_id: results[0][0].value,
       rice_leaf_disease_id: results[0][1].value,
       rice_plant_medicine: results[0][2].value,
       description: results[0][3].value || null,
-      image_status: results[0][4].value
+      image: results[0][4].value  
     };
 
     res.status(200).json({
