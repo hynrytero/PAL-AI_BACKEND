@@ -54,7 +54,7 @@ router.get('/scan-history/:userId', async (req, res) => {
         const formattedResults = results.map(row => ({
             id: row[0].value,
             image: row[1].value,
-            confidence: Math.round(row[2].value * 100),
+            confidence: (row[2].value * 100).toFixed(2),
             date: row[3].value,
             disease: row[4].value,
             disease_description: row[5].value || 'No disease description available',
